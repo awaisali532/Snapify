@@ -1,0 +1,12 @@
+@import "tailwindcss";
+/* index.css mein hum is tarah ek baar config karenge */
+@theme {
+  --color-snap-yellow: #fffc00;
+  --color-snap-dark: #121212;
+  --color-snap-card: #1e293b;
+  --color-snap-text: #f3f4f6;
+}
+@custom-variant dark (&:is(.dark *));
+body {
+  @apply bg-white text-black dark:bg-snap-dark dark:text-snap-text transition-colors duration-300;
+}
