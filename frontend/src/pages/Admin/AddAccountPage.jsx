@@ -105,7 +105,7 @@ const AddAccountPage = () => {
       });
 
       const uploadRes = await axios.post(
-        `${API_URL}/api/upload`,
+        `${API_URL}/api/upload/multiple`,
         imageFormData,
         { headers: { "Content-Type": "multipart/form-data" } },
       );

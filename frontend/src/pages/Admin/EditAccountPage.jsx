@@ -6,7 +6,7 @@ import { FaTimes } from "react-icons/fa";
 import { LoaderContext } from "../../context/LoaderContext";
 
 const EditAccountPage = () => {
-  const { id } = useParams(); // URL se account ki ID nikal li
+  const { id } = useParams();
   const navigate = useNavigate();
   const { showLoader, hideLoader } = useContext(LoaderContext);
 
@@ -27,20 +27,18 @@ const EditAccountPage = () => {
     emailPassword: "",
   });
 
-  // JADOO: Purani aur Nayi tasweeron ko alag alag manage karna
-  const [existingImages, setExistingImages] = useState([]); // Database wali tasweerein (URLs)
-  const [newImages, setNewImages] = useState([]); // Nayi select ki hui tasweerein (Files)
+  const [existingImages, setExistingImages] = useState([]);
+  const [newImages, setNewImages] = useState([]);
 
   // ==========================================
-  // 1. Data Mangwana (Pre-fill Form - ADMIN VIP ROUTE)
+  // 1. Data Mangwana
   // ==========================================
   useEffect(() => {
     const fetchAccountDetails = async () => {
       try {
         const API_URL = import.meta.env.VITE_API_URL;
-        const token = localStorage.getItem("token"); // Admin Token nikaala
+        const token = localStorage.getItem("token");
 
-        // JADOO: Admin wali API hit ki aur token sath bheja
         const response = await axios.get(
           `${API_URL}/api/accounts/admin/${id}`,
           {
@@ -64,7 +62,6 @@ const EditAccountPage = () => {
           emailPassword: data.emailPassword || "",
         });
 
-        // Purani tasweerein set kar di
         if (data.images) {
           setExistingImages(data.images);
         }
@@ -88,12 +85,11 @@ const EditAccountPage = () => {
   };
 
   // ==========================================
-  // JADOO: Smart Image Selection
+  // Image Selection
   // ==========================================
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
 
-    // Check karein ke Total (Purani + Nayi) 5 se zyada toh nahi ho rahin
     if (existingImages.length + newImages.length + files.length > 5) {
       Swal.fire(
         "Limit Reached",
@@ -107,14 +103,12 @@ const EditAccountPage = () => {
     e.target.value = null;
   };
 
-  // Remove Purani Image
   const removeExistingImage = (indexToRemove) => {
     setExistingImages((prev) =>
       prev.filter((_, index) => index !== indexToRemove),
     );
   };
 
-  // Remove Nayi Image
   const removeNewImage = (indexToRemove) => {
     setNewImages((prev) => prev.filter((_, index) => index !== indexToRemove));
   };
@@ -149,15 +143,17 @@ const EditAccountPage = () => {
 
       let uploadedImageUrls = [];
 
-      // Agar Nayi tasweerein hain toh unhe pehle Cloudinary par bhejo
       if (newImages.length > 0) {
         const imageFormData = new FormData();
         newImages.forEach((image) => {
           imageFormData.append("images", image);
         });
 
+        // ==========================================
+        // 🔥 JADOO: YAHAN /multiple LAGA DIYA HAI
+        // ==========================================
         const uploadRes = await axios.post(
-          `${API_URL}/api/upload`,
+          `${API_URL}/api/upload/multiple`,
           imageFormData,
           {
             headers: { "Content-Type": "multipart/form-data" },
@@ -167,7 +163,6 @@ const EditAccountPage = () => {
         uploadedImageUrls = uploadRes.data.urls;
       }
 
-      // JADOO: Purani bachi hui tasweerein + Nayi tasweerein mila kar Database ko bhejo
       const finalImagesArray = [...existingImages, ...uploadedImageUrls];
 
       const featuresArray = formData.features
@@ -181,7 +176,7 @@ const EditAccountPage = () => {
         followers: parsedFollowers,
         score: String(formData.score),
         features: featuresArray,
-        images: finalImagesArray, // Backend khud check karega konsi uraani hai
+        images: finalImagesArray,
       };
 
       await axios.put(`${API_URL}/api/accounts/${id}`, finalAccountData, {
@@ -229,7 +224,7 @@ const EditAccountPage = () => {
         onSubmit={handleSubmit}
         className="bg-white dark:bg-snap-card rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 md:p-8 space-y-8"
       >
-        {/* SECTION 1: Public Details (Same as AddAccount) */}
+        {/* SECTION 1: Public Details */}
         <div>
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 border-b border-gray-100 dark:border-gray-800 pb-2">
             Public Information
@@ -335,7 +330,7 @@ const EditAccountPage = () => {
             </div>
 
             {/* ==========================================
-                VIP IMAGE PREVIEW (PURANI AUR NAYI TASWEEREIN)
+                VIP IMAGE PREVIEW 
                 ========================================== */}
             <div className="md:col-span-2 border border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-6 bg-gray-50 dark:bg-gray-800/50">
               <div className="flex justify-between items-center mb-4">
@@ -358,7 +353,6 @@ const EditAccountPage = () => {
 
               {(existingImages.length > 0 || newImages.length > 0) && (
                 <div className="flex flex-wrap gap-4 mt-4 p-4 bg-white dark:bg-snap-dark rounded-xl border border-gray-200 dark:border-gray-700 shadow-inner">
-                  {/* Purani Tasweerein (Jo DB se aayin) */}
                   {existingImages.map((url, index) => (
                     <div
                       key={`old-${index}`}
@@ -382,7 +376,6 @@ const EditAccountPage = () => {
                     </div>
                   ))}
 
-                  {/* Nayi Tasweerein (Jo abhi select ki hain) */}
                   {newImages.map((file, index) => (
                     <div
                       key={`new-${index}`}
@@ -411,7 +404,7 @@ const EditAccountPage = () => {
           </div>
         </div>
 
-        {/* SECTION 2: Private Details (Secret) */}
+        {/* SECTION 2: Private Details */}
         <div>
           <h3 className="text-lg font-bold text-red-500 dark:text-red-400 mb-4 border-b border-gray-100 dark:border-gray-800 pb-2">
             Secret Credentials
