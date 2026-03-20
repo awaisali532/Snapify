@@ -2,6 +2,8 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 
+dotenv.config();
+
 const connectDB = require("./config/db");
 const userRoutes = require("./routes/user-routes");
 const accountRoutes = require("./routes/account-routes");
@@ -10,14 +12,20 @@ const orderRoutes = require("./routes/order-routes");
 const reviewRoutes = require("./routes/review-routes");
 const scorePackageRoutes = require("./routes/score-package-routes");
 const paymentMethodRoutes = require("./routes/payment-method-routes");
-dotenv.config();
 
 connectDB();
 
 const app = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "https://snapify-dks6.vercel.app"],
+    credentials: true,
+  }),
+);
+
 app.use(express.json());
+
 app.use("/api/users", userRoutes);
 app.use("/api/accounts", accountRoutes);
 app.use("/api/upload", uploadRoutes);
