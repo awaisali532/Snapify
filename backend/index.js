@@ -19,10 +19,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "https://snapify-dks6-np6ec2v4p-awais-alis-projects-e3dd5bb2.vercel.app",
-    ],
+    origin: ["http://localhost:5173", "https://snapify-dks6.vercel.app"],
     credentials: true,
   }),
 );
