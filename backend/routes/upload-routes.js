@@ -6,9 +6,9 @@ const { upload } = require("../config/cloudinary");
 // 1. SINGLE IMAGE ROUTE (For Accounts & Receipts)
 // Yeh zaroori hai taake checkout system kharab na ho
 // ==========================================
-router.post("/", upload.single("image"), (req, res) => {
+router.post("/", upload.multi("image"), (req, res) => {
   try {
-    if (!req.file) {
+    if (!req.files || req.files.length === 0) {
       return res
         .status(400)
         .json({ success: false, message: "Koi file upload nahi hui!" });
