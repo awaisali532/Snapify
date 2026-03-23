@@ -2,7 +2,13 @@ import { useState, useEffect, useContext, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Swal from "sweetalert2";
-import { FaTimes, FaLock } from "react-icons/fa";
+import {
+  FaTimes,
+  FaLock,
+  FaInfoCircle,
+  FaFireAlt,
+  FaUserShield,
+} from "react-icons/fa";
 import { LoaderContext } from "../../context/LoaderContext";
 import { CurrencyContext } from "../../context/CurrencyContext";
 import { AuthContext } from "../../context/AuthContext";
@@ -17,7 +23,6 @@ const BoostingCheckoutPage = () => {
   const [pkg, setPkg] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // NAYA JADOO: Payment methods state
   const [paymentMethods, setPaymentMethods] = useState([]);
 
   const [formData, setFormData] = useState({
@@ -33,7 +38,6 @@ const BoostingCheckoutPage = () => {
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    // 1. Login Check
     if (!user) {
       Swal.fire("Access Denied", "Please login to checkout.", "warning").then(
         () => navigate("/login"),
@@ -41,7 +45,6 @@ const BoostingCheckoutPage = () => {
       return;
     }
 
-    // NAYA JADOO: Admin Block Logic
     if (user.role === "admin") {
       Swal.fire(
         "Admin Restricted",
@@ -55,13 +58,11 @@ const BoostingCheckoutPage = () => {
       try {
         const API_URL = import.meta.env.VITE_API_URL;
 
-        // Fetch Package Details
         const pkgResponse = await axios.get(`${API_URL}/api/score-packages`);
         const foundPkg = pkgResponse.data.data.find((p) => p._id === id);
         if (!foundPkg) throw new Error("Package Not found");
         setPkg(foundPkg);
 
-        // NAYA JADOO: Fetch Dynamic Payment Methods
         const paymentsResponse = await axios.get(
           `${API_URL}/api/payment-methods`,
         );
@@ -92,10 +93,41 @@ const BoostingCheckoutPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.paymentMethod)
+
+    if (!formData.paymentMethod) {
       return Swal.fire("Required", "Select a payment method.", "warning");
-    if (!screenshot)
+    }
+    if (!screenshot) {
       return Swal.fire("Required", "Upload the payment screenshot.", "warning");
+    }
+
+    // VIP JADOO: FINAL CONFIRMATION POPUP WITH NEW RULES
+    const rulesConfirmed = await Swal.fire({
+      title: "🔒 Final Confirmation",
+      html: `
+        <div style="text-align: left; font-size: 14px; color: #4b5563;">
+          <p style="color: #d97706; font-weight: bold; margin-bottom: 10px;">
+            Please confirm you have read our guidelines:
+          </p>
+          <ul style="padding-left: 20px; line-height: 1.8; list-style-type: disc;">
+            <li>My account is <b>6+ months old</b>.</li>
+            <li>I have <b>opened all my pending snaps/streaks</b>.</li>
+            <li>I understand that 1 random snap will be sent daily to save my streaks.</li>
+            <li>I will <b>stay logged out</b> until the order is completed.</li>
+          </ul>
+        </div>
+      `,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#facc15",
+      cancelButtonColor: "#d33",
+      confirmButtonText:
+        '<b style="color: black;">I Confirm, Place Order 🚀</b>',
+      cancelButtonText: "Cancel",
+      background: "#ffffff",
+    });
+
+    if (!rulesConfirmed.isConfirmed) return;
 
     showLoader("Placing Boost Order... 🚀");
 
@@ -151,7 +183,6 @@ const BoostingCheckoutPage = () => {
   const finalPrice = pkg.isOffer ? pkg.offerPrice : pkg.price;
   const displayPrice = calculatePrice(finalPrice);
 
-  // NAYA JADOO: User ne jo method select kiya hai, uski details nikalna
   const selectedPaymentMethodDetails = paymentMethods.find(
     (m) => m.methodName === formData.paymentMethod,
   );
@@ -163,14 +194,49 @@ const BoostingCheckoutPage = () => {
           Score Boost Checkout 🚀
         </h1>
         <p className="text-gray-600 dark:text-gray-400 font-medium">
-          Provide your account details securely to start the boost.
+          Please read the guidelines before making a payment.
         </p>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8 items-start">
-        {/* FORM */}
-        <div className="w-full lg:w-2/3 bg-white dark:bg-snap-card rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 md:p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        {/* LEFT SIDE: RULES & FORM */}
+        <div className="w-full lg:w-2/3 space-y-6">
+          {/* ==========================================
+              Naya Jadoo: PRE-PAYMENT GUIDELINES BOX
+              ========================================== */}
+          <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/50 rounded-2xl p-6 shadow-sm">
+            <h3 className="font-bold text-blue-800 dark:text-blue-400 mb-4 flex items-center gap-2 text-lg">
+              <FaInfoCircle /> Important Guidelines (Read Before Paying)
+            </h3>
+            <div className="space-y-4 text-sm text-blue-900 dark:text-blue-300">
+              <div className="flex gap-3">
+                <FaUserShield className="text-xl shrink-0 text-blue-500 mt-0.5" />
+                <p>
+                  <b>Account Age:</b> Your account must be at least{" "}
+                  <b>6 months old</b> with a verified Email or Phone Number.
+                  Fresh accounts get locked easily.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <FaFireAlt className="text-xl shrink-0 text-orange-500 mt-0.5" />
+                <p>
+                  <b>Streak Protection:</b> We will send 1 random snap daily so
+                  your streaks don't break. We strictly will <b>NOT</b> open
+                  your personal chats or snaps.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <FaLock className="text-xl shrink-0 text-gray-500 mt-0.5" />
+                <p>
+                  <b>Preparation:</b> Please open all your pending snaps/streaks{" "}
+                  <b>before</b> handing over the account. Also, accounts with
+                  fewer friends are boosted much faster!
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-snap-card rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 md:p-8">
             <div className="bg-yellow-50 dark:bg-yellow-900/10 p-5 rounded-xl border border-yellow-200 dark:border-yellow-800/50 mb-6">
               <h3 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                 <FaLock className="text-yellow-500 dark:text-snap-yellow" />{" "}
@@ -184,6 +250,7 @@ const BoostingCheckoutPage = () => {
                   <input
                     type="text"
                     name="snapchatUsername"
+                    form="boosting-form"
                     required
                     value={formData.snapchatUsername}
                     onChange={handleChange}
@@ -198,6 +265,7 @@ const BoostingCheckoutPage = () => {
                   <input
                     type="password"
                     name="snapchatPassword"
+                    form="boosting-form"
                     required
                     value={formData.snapchatPassword}
                     onChange={handleChange}
@@ -212,117 +280,121 @@ const BoostingCheckoutPage = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
-                  Full Name *
-                </label>
-                <input
-                  type="text"
-                  name="buyerName"
-                  required
-                  value={formData.buyerName}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-snap-dark border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-yellow-500 dark:focus:ring-snap-yellow outline-none"
-                />
+            <form
+              id="boosting-form"
+              onSubmit={handleSubmit}
+              className="space-y-6"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
+                    Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    name="buyerName"
+                    required
+                    value={formData.buyerName}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-snap-dark border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-yellow-500 dark:focus:ring-snap-yellow outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
+                    WhatsApp *
+                  </label>
+                  <input
+                    type="text"
+                    name="buyerPhone"
+                    required
+                    value={formData.buyerPhone}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-snap-dark border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-yellow-500 dark:focus:ring-snap-yellow outline-none"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
-                  WhatsApp *
-                </label>
-                <input
-                  type="text"
-                  name="buyerPhone"
-                  required
-                  value={formData.buyerPhone}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-snap-dark border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-yellow-500 dark:focus:ring-snap-yellow outline-none"
-                />
-              </div>
-            </div>
 
-            {/* DYNAMIC PAYMENT METHOD DROPDOWN */}
-            <div>
-              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                Payment Method *
-              </label>
-              <select
-                name="paymentMethod"
-                required
-                value={formData.paymentMethod}
-                onChange={handleChange}
-                className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-snap-dark border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-yellow-500 dark:focus:ring-snap-yellow outline-none"
-              >
-                <option value="" disabled>
-                  -- Choose --
-                </option>
-                {paymentMethods.map((method) => (
-                  <option key={method._id} value={method.methodName}>
-                    {method.methodName}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                  Payment Method *
+                </label>
+                <select
+                  name="paymentMethod"
+                  required
+                  value={formData.paymentMethod}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-snap-dark border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-yellow-500 dark:focus:ring-snap-yellow outline-none"
+                >
+                  <option value="" disabled>
+                    -- Choose --
                   </option>
-                ))}
-              </select>
-            </div>
-
-            {/* DYNAMIC PAYMENT DETAILS SHOW */}
-            {selectedPaymentMethodDetails && (
-              <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-500 dark:border-snap-yellow p-4 rounded-r-lg">
-                <h4 className="font-bold text-gray-900 dark:text-yellow-400 mb-2">
-                  {selectedPaymentMethodDetails.title}
-                </h4>
-                <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line text-sm leading-relaxed">
-                  {selectedPaymentMethodDetails.details}
-                </p>
-                <p className="text-xs font-bold text-red-500 mt-3">
-                  * Send exactly{" "}
-                  <b>
-                    {displaySymbol} {displayPrice}
-                  </b>
-                </p>
+                  {paymentMethods.map((method) => (
+                    <option key={method._id} value={method.methodName}>
+                      {method.methodName}
+                    </option>
+                  ))}
+                </select>
               </div>
-            )}
 
-            <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-6 bg-gray-50 dark:bg-gray-800/50 text-center">
-              {!screenshot && (
-                <input
-                  type="file"
-                  required
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  ref={fileInputRef}
-                  className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-yellow-500 file:text-black hover:file:bg-yellow-400 cursor-pointer text-gray-600 dark:text-gray-400"
-                />
-              )}
-              {screenshot && (
-                <div className="mt-2 flex flex-col items-center">
-                  <div className="relative inline-block group">
-                    <img
-                      src={URL.createObjectURL(screenshot)}
-                      alt="Preview"
-                      className="h-32 object-contain rounded-lg shadow-md border border-gray-200 dark:border-gray-700"
-                    />
-                    <button
-                      type="button"
-                      onClick={removeScreenshot}
-                      className="absolute -top-3 -right-3 bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-full shadow-lg z-10"
-                    >
-                      <FaTimes size={14} />
-                    </button>
-                  </div>
+              {selectedPaymentMethodDetails && (
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-500 dark:border-snap-yellow p-4 rounded-r-lg">
+                  <h4 className="font-bold text-gray-900 dark:text-yellow-400 mb-2">
+                    {selectedPaymentMethodDetails.title}
+                  </h4>
+                  <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line text-sm leading-relaxed">
+                    {selectedPaymentMethodDetails.details}
+                  </p>
+                  <p className="text-xs font-bold text-red-500 mt-3">
+                    * Send exactly{" "}
+                    <b>
+                      {displaySymbol} {displayPrice}
+                    </b>
+                  </p>
                 </div>
               )}
-            </div>
 
-            <button
-              type="submit"
-              className="w-full bg-yellow-500 dark:bg-snap-yellow text-black font-black text-lg py-4 rounded-xl shadow-lg hover:-translate-y-1 transition-all"
-            >
-              Place Boosting Order 🚀
-            </button>
-          </form>
+              <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-6 bg-gray-50 dark:bg-gray-800/50 text-center">
+                {!screenshot && (
+                  <input
+                    type="file"
+                    required
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    ref={fileInputRef}
+                    className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-yellow-500 file:text-black hover:file:bg-yellow-400 cursor-pointer text-gray-600 dark:text-gray-400"
+                  />
+                )}
+                {screenshot && (
+                  <div className="mt-2 flex flex-col items-center">
+                    <div className="relative inline-block group">
+                      <img
+                        src={URL.createObjectURL(screenshot)}
+                        alt="Preview"
+                        className="h-32 object-contain rounded-lg shadow-md border border-gray-200 dark:border-gray-700"
+                      />
+                      <button
+                        type="button"
+                        onClick={removeScreenshot}
+                        className="absolute -top-3 -right-3 bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-full shadow-lg z-10"
+                      >
+                        <FaTimes size={14} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-yellow-500 dark:bg-snap-yellow text-black font-black text-lg py-4 rounded-xl shadow-lg hover:-translate-y-1 transition-all"
+              >
+                Place Boosting Order 🚀
+              </button>
+            </form>
+          </div>
         </div>
 
-        {/* SUMMARY */}
+        {/* RIGHT SIDE: SUMMARY */}
         <div className="w-full lg:w-1/3 bg-white dark:bg-snap-card rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 sticky top-6">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 border-b border-gray-100 dark:border-gray-800 pb-3">
             Order Summary

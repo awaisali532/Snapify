@@ -10,6 +10,7 @@ import {
   FaTimesCircle,
   FaShieldAlt,
   FaArrowLeft,
+  FaClock,
 } from "react-icons/fa";
 import { CurrencyContext } from "../../context/CurrencyContext";
 import { AuthContext } from "../../context/AuthContext";
@@ -19,13 +20,10 @@ const formatToKM = (value) => {
   if (
     typeof value === "string" &&
     (value.toLowerCase().includes("k") || value.toLowerCase().includes("m"))
-  ) {
+  )
     return value;
-  }
-
   const num = Number(value);
   if (isNaN(num)) return value;
-
   if (num >= 1000000)
     return (num / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
   if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, "") + "K";
@@ -50,9 +48,7 @@ const AccountDetailsPage = () => {
         const API_URL = import.meta.env.VITE_API_URL;
         const response = await axios.get(`${API_URL}/api/accounts/${id}`);
         const data = response.data.data;
-
         setAccount(data);
-
         if (data.images && data.images.length > 0) {
           setActiveImage(data.images[0]);
         }
@@ -63,13 +59,49 @@ const AccountDetailsPage = () => {
         setLoading(false);
       }
     };
-
     fetchAccountDetails();
   }, [id]);
 
   const handleBuyNow = () => {
-    if (!user) {
+    // 1. Admin Alert
+    if (user && user.role === "admin") {
+      return Swal.fire(
+        "Admin Alert! 🛑",
+        "Ustad, aap toh khud malik hain! Aapko khareedne ki kya zaroorat hai? 😄",
+        "warning",
+      );
+    }
+
+    // 2. ⏳ RESERVED FOMO POPUP JADOO
+    if (account.isReserved) {
       Swal.fire({
+        title: "⏳ Account Reserved",
+        html: `
+          <div style="text-align: left; font-size: 15px; color: #4b5563;">
+            <p>This account is currently <b>Pending Payment Verification</b> from another buyer.</p>
+            <p style="margin-top: 10px;">If the current buyer fails to pay, it will be available again.</p>
+          </div>
+        `,
+        icon: "info",
+        showCancelButton: true,
+        confirmButtonColor: "#facc15",
+        cancelButtonColor: "#6b7280",
+        confirmButtonText: '<b style="color: black;">Join Waitlist 📩</b>',
+        cancelButtonText: "Close",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          window.open(
+            `https://wa.me/923098972484?text=Hi, I want to join the waitlist for the reserved account: ${account.title}`,
+            "_blank",
+          );
+        }
+      });
+      return;
+    }
+
+    // 3. Login Check
+    if (!user) {
+      return Swal.fire({
         title: "Login Required!",
         text: "Please login or create an account to buy this Snapchat account securely.",
         icon: "info",
@@ -78,25 +110,16 @@ const AccountDetailsPage = () => {
       }).then((result) => {
         if (result.isConfirmed) navigate("/login");
       });
-      return;
     }
 
-    if (user.role === "admin") {
-      Swal.fire(
-        "Admin Alert! 🛑",
-        "Ustad, aap toh khud malik hain! Aapko khareedne ki kya zaroorat hai? 😄",
-        "warning",
-      );
-      return;
-    }
-
+    // 4. Proceed to Checkout
     navigate(`/checkout/${account._id}`);
   };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-snap-dark">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-snap-dark dark:border-snap-yellow"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-snap-yellow"></div>
       </div>
     );
   }
@@ -113,7 +136,7 @@ const AccountDetailsPage = () => {
         </p>
         <Link
           to="/accounts"
-          className="px-6 py-3 bg-snap-yellow text-black font-bold rounded-lg hover:shadow-lg transition"
+          className="px-6 py-3 bg-yellow-500 dark:bg-snap-yellow text-black font-bold rounded-lg hover:shadow-lg transition"
         >
           Browse Other Accounts
         </Link>
@@ -126,7 +149,7 @@ const AccountDetailsPage = () => {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-snap-dark dark:hover:text-snap-yellow transition mb-6 font-medium"
+          className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-yellow-500 dark:hover:text-snap-yellow transition mb-6 font-medium"
         >
           <FaArrowLeft /> Back to Accounts
         </button>
@@ -146,18 +169,13 @@ const AccountDetailsPage = () => {
                 </div>
               )}
             </div>
-
             {account.images && account.images.length > 1 && (
               <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide w-full justify-center">
                 {account.images.map((img, index) => (
                   <button
                     key={index}
                     onClick={() => setActiveImage(img)}
-                    className={`relative shrink-0 w-24 h-16 rounded-xl overflow-hidden border-2 transition-all ${
-                      activeImage === img
-                        ? "border-snap-yellow shadow-md scale-105"
-                        : "border-transparent opacity-70 hover:opacity-100"
-                    }`}
+                    className={`relative shrink-0 w-24 h-16 rounded-xl overflow-hidden border-2 transition-all ${activeImage === img ? "border-yellow-500 dark:border-snap-yellow shadow-md scale-105" : "border-transparent opacity-70 hover:opacity-100"}`}
                   >
                     <img
                       src={img}
@@ -182,6 +200,11 @@ const AccountDetailsPage = () => {
                 <span className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-sm px-3 py-1 rounded-full flex items-center gap-1.5 font-bold capitalize">
                   <FaVenusMars /> {account.gender} Setup
                 </span>
+                {account.isReserved && (
+                  <span className="bg-orange-500 text-white text-sm px-3 py-1 rounded-full flex items-center gap-1.5 font-black animate-pulse shadow-md">
+                    <FaClock /> RESERVED
+                  </span>
+                )}
               </div>
 
               <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white leading-tight mb-2">
@@ -208,21 +231,16 @@ const AccountDetailsPage = () => {
                     const isNegative =
                       feature.toLowerCase().includes("not ") ||
                       feature.toLowerCase().startsWith("no ");
-
                     return (
                       <li
                         key={idx}
-                        className={`flex items-center gap-2 font-medium ${
-                          isNegative
-                            ? "text-gray-500 dark:text-gray-500 opacity-80"
-                            : "text-gray-700 dark:text-gray-300"
-                        }`}
+                        className={`flex items-center gap-2 font-medium ${isNegative ? "text-gray-500 opacity-80" : "text-gray-700 dark:text-gray-300"}`}
                       >
                         {isNegative ? (
                           <FaTimesCircle className="text-red-500 shrink-0" />
                         ) : (
-                          <FaCheckCircle className="text-snap-yellow shrink-0" />
-                        )}
+                          <FaCheckCircle className="text-yellow-500 dark:text-snap-yellow shrink-0" />
+                        )}{" "}
                         {feature}
                       </li>
                     );
@@ -235,22 +253,20 @@ const AccountDetailsPage = () => {
               <div className="text-sm text-gray-500 dark:text-gray-400 font-semibold mb-1 uppercase tracking-wide">
                 Total Price
               </div>
-              <div className="text-4xl font-black text-snap-dark dark:text-snap-yellow mb-6">
+              <div className="text-4xl font-black text-yellow-500 dark:text-snap-yellow mb-6">
                 {symbols[currency] || currency} {calculatePrice(account.price)}
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={handleBuyNow}
-                  className="bg-snap-yellow text-black font-black py-4 px-6 rounded-xl hover:shadow-lg transition-all text-center flex-1"
+                  className={`${account.isReserved ? "bg-orange-500 text-white hover:bg-orange-600" : "bg-yellow-500 dark:bg-snap-yellow hover:bg-yellow-600 dark:hover:bg-yellow-400 text-black hover:shadow-lg"} font-black py-4 px-6 rounded-xl transition-all text-center flex-1`}
                 >
-                  Buy Now
+                  {account.isReserved ? "Join Waitlist ⏳" : "Buy Now 🚀"}
                 </button>
 
-                {/* NAYA JADOO: Contact Seller WhatsApp Link */}
-                {/* NOTE: Niche "923000000000" ko apne asli WhatsApp number se replace lazmi karein */}
                 <a
-                  href={`https://wa.me/923098972484?text=Hi, I am interested in buying this Snapchat account: ${account.title}`}
+                  href={`https://wa.me/923098972484?text=Hi, I am interested in this Snapchat account: ${account.title}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white font-bold text-lg py-4 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-300 flex justify-center items-center text-center"

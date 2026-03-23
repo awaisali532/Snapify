@@ -29,7 +29,6 @@ const createOrder = async (req, res) => {
       snapchatUsername,
       snapchatPassword,
       paymentMethod,
-      paymentScreenshot,
     } = req.body;
 
     let newOrderData = {
@@ -39,7 +38,7 @@ const createOrder = async (req, res) => {
       buyerPhone,
       buyerEmail,
       paymentMethod,
-      paymentScreenshot,
+      paymentScreenshot: uploadedScreenshotUrl,
       status: "Pending",
     };
 
@@ -52,13 +51,17 @@ const createOrder = async (req, res) => {
       if (!account) throw new Error("Account not found!");
       if (account.isSold)
         throw new Error("Sorry! This account is already sold.");
+      // NAYA JADOO: Agar pehle hi kisi aur ne reserve kiya hua hai toh rok lo
+      if (account.isReserved)
+        throw new Error("This account is currently reserved by another buyer.");
 
       newOrderData.account = accountId;
       newOrderData.priceAtPurchase = account.price;
       discordEmbedTitle = `📦 Account Buy: ${account.title}`;
       priceString = `Rs ${account.price}`;
 
-      account.isSold = true;
+      // NAYA JADOO: isSold ki jagah isReserved true kar diya
+      account.isReserved = true;
       await account.save();
     } else if (orderType === "Boosting") {
       const pkg = await ScorePackage.findById(scorePackageId);
@@ -140,9 +143,9 @@ const getMyOrders = async (req, res) => {
     const orders = await Order.find({ user: req.user._id })
       .populate(
         "account",
-        "title price gender snapchatUsername snapchatPassword recoveryEmail emailPassword images",
+        "title price gender snapchatUsername snapchatPassword recoveryEmail emailPassword images isReserved",
       )
-      .populate("scorePackage", "title scoreAmount deliveryTime") // Boosting ke liye
+      .populate("scorePackage", "title scoreAmount deliveryTime")
       .sort({ createdAt: -1 });
 
     res.status(200).json({ success: true, count: orders.length, data: orders });
@@ -158,9 +161,8 @@ const getAllOrders = async (req, res) => {
     const orders = await Order.find({ isVisibleToAdmin: true })
       .populate(
         "account",
-        "title price gender snapchatUsername snapchatPassword images",
+        "title price gender snapchatUsername snapchatPassword images isReserved",
       )
-
       .populate("scorePackage", "title scoreAmount isOffer")
       .sort({ createdAt: -1 });
 
@@ -179,21 +181,39 @@ const updateOrderStatus = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Order not found" });
 
+    // NAYA JADOO: Status update hone par isSold aur isReserved ka automatic control
     if (order.orderType === "Account" && order.account) {
-      if (status === "Rejected" && order.status !== "Rejected") {
-        await Account.findByIdAndUpdate(order.account._id, { isSold: false });
-      } else if (status !== "Rejected" && order.status === "Rejected") {
-        await Account.findByIdAndUpdate(order.account._id, { isSold: true });
-      }
+      if (status === "Verified") {
+        // Payment Done -> Reserved khatam, Sold pakka
+        await Account.findByIdAndUpdate(order.account._id, {
+          isSold: true,
+          isReserved: false,
+        });
 
-      if (status === "Verified" && order.status !== "Verified") {
-        if (order.account.images && order.account.images.length > 0) {
+        // Agar pehle check nahi hua toh images delete kar do
+        if (
+          order.status !== "Verified" &&
+          order.account.images &&
+          order.account.images.length > 0
+        ) {
           for (const imgUrl of order.account.images) {
             const publicId = extractPublicId(imgUrl);
             if (publicId) await cloudinary.uploader.destroy(publicId);
           }
           await Account.findByIdAndUpdate(order.account._id, { images: [] });
         }
+      } else if (status === "Rejected") {
+        // Payment Fake -> Reserved khatam, Sold bhi nahi, Wapis available ho jayega!
+        await Account.findByIdAndUpdate(order.account._id, {
+          isSold: false,
+          isReserved: false,
+        });
+      } else if (status === "Pending" || status === "In Progress") {
+        // Pending me wapis laya -> Reserved wapis on ho jayega
+        await Account.findByIdAndUpdate(order.account._id, {
+          isSold: false,
+          isReserved: true,
+        });
       }
     }
 
@@ -213,6 +233,7 @@ const updateOrderStatus = async (req, res) => {
   }
 };
 
+// ... Baqi controllers same rahenge (trackOrder, deleteOrder, getDashboardStats) ...
 const trackOrder = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id)
@@ -249,7 +270,6 @@ const trackOrder = async (req, res) => {
         emailPassword: order.account.emailPassword,
       };
     }
-
     res.status(200).json({ success: true, data: responseData });
   } catch (error) {
     res

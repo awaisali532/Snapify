@@ -1,7 +1,6 @@
-import { FaFilter } from "react-icons/fa"; // 1. Professional Icon Import Kiya
+import { FaFilter } from "react-icons/fa";
 
 const AccountFilters = ({ filters, setFilters }) => {
-  // Jab bhi koi filter change ho, yeh function Parent (Main Page) ko bata dega
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFilters((prev) => ({ ...prev, [name]: value }));
@@ -9,9 +8,9 @@ const AccountFilters = ({ filters, setFilters }) => {
 
   return (
     <div className="bg-white dark:bg-snap-card p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
-      {/* PROFESSIONAL TITLE WITH ICON */}
+      {/* 🟡 JADOO: Icon color perfect kiya (Light/Dark mode) */}
       <h3 className="flex items-center gap-2 text-lg font-bold text-gray-900 dark:text-white mb-6 border-b border-gray-200 dark:border-gray-700 pb-3">
-        <FaFilter className="text-snap-yellow" /> Filters
+        <FaFilter className="text-yellow-500 dark:text-snap-yellow" /> Filters
       </h3>
 
       {/* 1. Snap Score Filter */}
@@ -31,7 +30,7 @@ const AccountFilters = ({ filters, setFilters }) => {
                 value={scoreOpt}
                 checked={filters.score === scoreOpt}
                 onChange={handleChange}
-                className="w-4 h-4 text-snap-yellow focus:ring-snap-yellow bg-gray-100 border-gray-300 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
+                className="w-4 h-4 text-yellow-500 focus:ring-yellow-500 dark:text-snap-yellow dark:focus:ring-snap-yellow bg-gray-100 border-gray-300 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
               />
               <span className="text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white capitalize text-sm transition-colors">
                 {scoreOpt === "all"
@@ -43,7 +42,7 @@ const AccountFilters = ({ filters, setFilters }) => {
         </div>
       </div>
 
-      {/* 2. FOLLOWERS FILTER (Naya Add Kiya) */}
+      {/* 2. FOLLOWERS FILTER */}
       <div className="mb-6">
         <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-3 text-sm uppercase tracking-wider">
           Followers
@@ -56,11 +55,11 @@ const AccountFilters = ({ filters, setFilters }) => {
             >
               <input
                 type="radio"
-                name="followers" // Name update kiya taake state mein 'followers' save ho
+                name="followers"
                 value={follOpt}
                 checked={filters.followers === follOpt}
                 onChange={handleChange}
-                className="w-4 h-4 text-snap-yellow focus:ring-snap-yellow bg-gray-100 border-gray-300 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
+                className="w-4 h-4 text-yellow-500 focus:ring-yellow-500 dark:text-snap-yellow dark:focus:ring-snap-yellow bg-gray-100 border-gray-300 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
               />
               <span className="text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white capitalize text-sm transition-colors">
                 {follOpt === "all"
@@ -89,7 +88,7 @@ const AccountFilters = ({ filters, setFilters }) => {
                 value={genderOpt}
                 checked={filters.gender === genderOpt}
                 onChange={handleChange}
-                className="w-4 h-4 text-snap-yellow focus:ring-snap-yellow bg-gray-100 border-gray-300 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
+                className="w-4 h-4 text-yellow-500 focus:ring-yellow-500 dark:text-snap-yellow dark:focus:ring-snap-yellow bg-gray-100 border-gray-300 dark:bg-gray-700 dark:border-gray-600 cursor-pointer"
               />
               <span className="text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white capitalize text-sm transition-colors">
                 {genderOpt}
@@ -108,7 +107,7 @@ const AccountFilters = ({ filters, setFilters }) => {
           name="sort"
           value={filters.sort}
           onChange={handleChange}
-          className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm rounded-lg focus:ring-snap-yellow focus:border-snap-yellow block p-2.5 outline-none cursor-pointer"
+          className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm rounded-lg focus:ring-yellow-500 dark:focus:ring-snap-yellow focus:border-yellow-500 dark:focus:border-snap-yellow block p-2.5 outline-none cursor-pointer transition-colors"
         >
           <option value="default">Default</option>
           <option value="low-high">Low to High</option>

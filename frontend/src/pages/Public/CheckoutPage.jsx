@@ -98,19 +98,60 @@ const CheckoutPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.paymentMethod)
+    // ==========================================
+    // 1. PEHLE FORM KI VALIDATION CHECK KAREIN
+    // ==========================================
+    if (!formData.paymentMethod) {
       return Swal.fire(
         "Required",
         "Please select a payment method.",
         "warning",
       );
-    if (!screenshot)
+    }
+
+    if (!screenshot) {
       return Swal.fire(
         "Required",
         "Please upload the payment screenshot.",
         "warning",
       );
+    }
 
+    // ==========================================
+    // 2. AGAR FORM THEEK HAI, TOH SAFETY POPUP DIKHAYEIN
+    // ==========================================
+    const result = await Swal.fire({
+      title: "🛡️ Anti-Ban Safety Rules",
+      html: `
+      <div style="text-align: left; font-size: 15px; color: #4b5563;">
+        <p style="color: #ef4444; font-weight: bold; margin-bottom: 10px;">
+          ⚠️ Follow these rules for our 100% Guarantee:
+        </p>
+        <ul style="padding-left: 20px; line-height: 1.8; list-style-type: disc;">
+          <li><b>Do NOT</b> change Username, Email, or Password for the first <b>24 Hours</b>.</li>
+          <li><b>Do NOT</b> add or remove too many friends for <b>7 Days</b>.</li>
+          <li>Just send normal streaks and use the account naturally.</li>
+        </ul>
+        <p style="margin-top: 15px; font-size: 13px; color: #6b7280;">
+          <i>*Snapchat locks accounts if details are changed immediately on a new device due to IP Change. Snapchat needs at least 24 Hours to build trust on your IP.</i>
+        </p>
+      </div>
+    `,
+      icon: "info",
+      showCancelButton: true,
+      confirmButtonColor: "#facc15",
+      cancelButtonColor: "#d33",
+      confirmButtonText: '<b style="color: black;">I Agree, Place Order 🚀</b>',
+      cancelButtonText: "Cancel",
+      background: "#ffffff",
+    });
+
+    // Agar user ne Cancel kar diya, toh yahin ruk jao
+    if (!result.isConfirmed) return;
+
+    // ==========================================
+    // 3. AGAR AGREE KAR LIYA, TOH ORDER PLACE KAREIN
+    // ==========================================
     showLoader("Placing Order... 🚀");
 
     try {
@@ -130,7 +171,7 @@ const CheckoutPage = () => {
 
       const finalOrderData = {
         ...formData,
-        orderType: "Account", // Flag for backend
+        orderType: "Account",
         accountId: id,
         paymentScreenshot: uploadedScreenshotUrl,
       };
@@ -159,7 +200,6 @@ const CheckoutPage = () => {
       hideLoader();
     }
   };
-
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">

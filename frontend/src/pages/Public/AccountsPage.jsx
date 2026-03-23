@@ -2,11 +2,9 @@ import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { FaFilter } from "react-icons/fa";
 
-// AAPKE ORIGINALS COMPONENTS IMPORT KIYE HAIN
 import AccountCard from "../../components/Public/Accounts/AccountCard";
 import AccountFilters from "../../components/Public/Accounts/AccountFilters";
 
-// String Score ("1.2M", "500k") ko Number bananay ka Helper
 const parseScore = (scoreStr) => {
   if (!scoreStr) return 0;
   let s = scoreStr.toString().toLowerCase().replace(/,/g, "");
@@ -28,7 +26,6 @@ const AccountsPage = () => {
   });
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
-  // Database se accounts mangwana
   useEffect(() => {
     const fetchAccounts = async () => {
       try {
@@ -46,10 +43,10 @@ const AccountsPage = () => {
     fetchAccounts();
   }, []);
 
-  // Filtering Logic
   const filteredAccounts = useMemo(() => {
     let result = [...accounts];
 
+    // Note: API already filters out isSold: true accounts, so we only see Available and Reserved here.
     if (filters.gender !== "any") {
       result = result.filter(
         (acc) => acc.gender?.toLowerCase() === filters.gender.toLowerCase(),
@@ -88,7 +85,6 @@ const AccountsPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-snap-dark py-10 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Page Header */}
         <div className="mb-8 text-center md:text-left">
           <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white">
             Premium Accounts
@@ -98,18 +94,16 @@ const AccountsPage = () => {
           </p>
         </div>
 
-        {/* Mobile Filter Button */}
         <div className="md:hidden mb-4">
           <button
             onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
             className="w-full flex items-center justify-center gap-2 bg-white dark:bg-snap-card border border-gray-200 dark:border-gray-700 py-3 rounded-xl shadow-sm text-gray-800 dark:text-white font-semibold"
           >
-            <FaFilter className="text-snap-yellow" />
+            <FaFilter className="text-yellow-500 dark:text-snap-yellow" />
             {isMobileFilterOpen ? "Hide Filters" : "Show Filters"}
           </button>
         </div>
 
-        {/* LOADING & ERROR STATES */}
         {loading && (
           <div className="flex justify-center items-center h-40 w-full">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-snap-dark dark:border-snap-yellow"></div>
@@ -122,18 +116,14 @@ const AccountsPage = () => {
           </div>
         )}
 
-        {/* Main Layout (Grid) */}
         {!loading && !error && (
           <div className="flex flex-col md:flex-row gap-8">
-            {/* Left Sidebar: Filters */}
             <div
               className={`w-full md:w-1/4 ${isMobileFilterOpen ? "block" : "hidden md:block"}`}
             >
-              {/* AAPKA COMPONENT YAHAN LAGA HAI */}
               <AccountFilters filters={filters} setFilters={setFilters} />
             </div>
 
-            {/* Right Area: Cards Grid */}
             <div className="w-full md:w-3/4">
               {filteredAccounts.length === 0 ? (
                 <div className="text-center py-20 bg-white dark:bg-snap-card rounded-2xl border border-dashed border-gray-300 dark:border-gray-700">
@@ -149,7 +139,7 @@ const AccountsPage = () => {
                         sort: "default",
                       })
                     }
-                    className="text-snap-dark dark:text-snap-yellow font-bold hover:underline"
+                    className="text-yellow-500 dark:text-snap-yellow font-bold hover:underline"
                   >
                     Clear Filters
                   </button>
@@ -157,7 +147,6 @@ const AccountsPage = () => {
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredAccounts.map((account) => (
-                    /* AAPKA COMPONENT YAHAN LAGA HAI */
                     <AccountCard key={account._id} account={account} />
                   ))}
                 </div>
