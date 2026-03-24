@@ -8,30 +8,35 @@ import {
   FaTimesCircle,
   FaCheckCircle,
   FaCalendarAlt,
+  FaLink,
+  FaTimes,
+  FaEdit, // 🟡 NAYA JADOO: Edit icon
 } from "react-icons/fa";
 import Swal from "sweetalert2";
-
-// NAYA JADOO: LoaderContext import kar liya
 import { LoaderContext } from "../../context/LoaderContext";
 
 const ManageReviewsPage = () => {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // NAYA: Loader Context se functions nikal liye
   const { showLoader, hideLoader } = useContext(LoaderContext);
 
-  // Custom Review Modal States
   const [showModal, setShowModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // 🟡 NAYA JADOO: Edit Mode Tracking
+  const [editingId, setEditingId] = useState(null);
 
   const [customData, setCustomData] = useState({
     name: "",
     rating: 5,
     comment: "",
     createdAt: "",
+    socialLink: "",
   });
-  const [customImages, setCustomImages] = useState([]);
+
+  // 🟡 NAYA JADOO: Images States (Purani aur Nayi dono ke liye)
+  const [existingImages, setExistingImages] = useState([]); // Jo database se aayin
+  const [customImages, setCustomImages] = useState([]); // Jo nayi select ki hain
 
   const fetchReviews = async () => {
     try {
@@ -49,7 +54,83 @@ const ManageReviewsPage = () => {
     fetchReviews();
   }, []);
 
-  // DELETE REVIEW (Loader Add Kiya)
+  // ==========================================
+  // 🟡 NAYA JADOO: Modal Open (For Create)
+  // ==========================================
+  const openCreateModal = () => {
+    setEditingId(null);
+    setCustomData({
+      name: "",
+      rating: 5,
+      comment: "",
+      createdAt: "",
+      socialLink: "",
+    });
+    setExistingImages([]);
+    setCustomImages([]);
+    setShowModal(true);
+  };
+
+  // ==========================================
+  // 🟡 NAYA JADOO: Modal Open (For Edit)
+  // ==========================================
+  const handleEditClick = (review) => {
+    setEditingId(review._id);
+
+    // Date ko input form ke hisab se format karna
+    const formattedDate = review.createdAt
+      ? new Date(review.createdAt).toISOString().split("T")[0]
+      : "";
+
+    setCustomData({
+      name: review.name,
+      rating: review.rating,
+      comment: review.comment,
+      createdAt: formattedDate,
+      socialLink: review.socialLink || "",
+    });
+
+    setExistingImages(review.images || []);
+    setCustomImages([]); // Nayi tasweerein filhal khali
+    setShowModal(true);
+  };
+
+  // ==========================================
+  // 🟡 NAYA JADOO: Smart Image Selection
+  // ==========================================
+  const handleImageChange = (e) => {
+    const newFiles = Array.from(e.target.files);
+
+    const totalImages =
+      existingImages.length + customImages.length + newFiles.length;
+
+    if (totalImages > 2) {
+      Swal.fire(
+        "Limit Reached",
+        "You can only have a maximum of 2 images total.",
+        "warning",
+      );
+      return;
+    }
+
+    setCustomImages((prev) => [...prev, ...newFiles]);
+    e.target.value = null;
+  };
+
+  // Nayi upload hone wali tasweer remove karna
+  const removeCustomImage = (indexToRemove) => {
+    setCustomImages((prev) =>
+      prev.filter((_, index) => index !== indexToRemove),
+    );
+  };
+
+  // Purani (Database wali) tasweer remove karna
+  const removeExistingImage = (indexToRemove) => {
+    setExistingImages((prev) =>
+      prev.filter((_, index) => index !== indexToRemove),
+    );
+  };
+
   const handleDelete = async (id) => {
     const isConfirm = await Swal.fire({
       title: "Delete Review?",
@@ -62,7 +143,6 @@ const ManageReviewsPage = () => {
 
     if (!isConfirm.isConfirmed) return;
 
-    // NAYA: Loader Show Karo
     showLoader("Deleting Review...");
 
     try {
@@ -78,31 +158,28 @@ const ManageReviewsPage = () => {
     } catch (error) {
       Swal.fire("Error", "Failed to delete review", "error");
     } finally {
-      // NAYA: Loader Hide Karo
       hideLoader();
     }
   };
 
-  // ADD CUSTOM REVIEW (Admin) - Loader Add Kiya
   const submitCustomReview = async (e) => {
     e.preventDefault();
     if (!customData.name || !customData.comment)
       return Swal.fire("Oops", "Name and comment required!", "warning");
 
     setIsSubmitting(true);
-    // NAYA: Loader Show Karo (Custom message ke sath)
-    showLoader("Uploading & Publishing...");
+    showLoader(editingId ? "Updating Review..." : "Publishing Review...");
 
     try {
       const API_URL = import.meta.env.VITE_API_URL;
       const token = localStorage.getItem("token");
       let uploadedImageUrls = [];
 
+      // Agar koi NAYI tasweer select ki hai, toh pehle usay Cloudinary par bhejo
       if (customImages.length > 0) {
         const formData = new FormData();
-        Array.from(customImages).forEach((file) =>
-          formData.append("images", file),
-        );
+        customImages.forEach((file) => formData.append("images", file));
+
         const uploadRes = await axios.post(
           `${API_URL}/api/upload/multiple?folder=reviews`,
           formData,
@@ -111,23 +188,34 @@ const ManageReviewsPage = () => {
         uploadedImageUrls = uploadRes.data.urls;
       }
 
-      await axios.post(
-        `${API_URL}/api/reviews/admin`,
-        { ...customData, images: uploadedImageUrls },
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
+      // Purani bachi hui tasweerein aur nayi tasweeron ko mila do
+      const finalImages = [...existingImages, ...uploadedImageUrls];
+      const payload = { ...customData, images: finalImages };
 
-      Swal.fire("Added!", "Custom review is live.", "success");
+      // 🟡 JADOO: Edit vs Create Logic
+      if (editingId) {
+        await axios.put(`${API_URL}/api/reviews/${editingId}`, payload, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        Swal.fire("Updated!", "Review updated successfully.", "success");
+      } else {
+        await axios.post(`${API_URL}/api/reviews/admin`, payload, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        Swal.fire("Added!", "Custom review is live.", "success");
+      }
+
       setShowModal(false);
-      setCustomImages([]);
-      setCustomData({ name: "", rating: 5, comment: "", createdAt: "" });
       fetchReviews();
     } catch (error) {
       console.error(error);
-      Swal.fire("Error", "Failed to add custom review", "error");
+      Swal.fire(
+        "Error",
+        editingId ? "Failed to update review" : "Failed to add review",
+        "error",
+      );
     } finally {
       setIsSubmitting(false);
-      // NAYA: Loader Hide Karo
       hideLoader();
     }
   };
@@ -140,7 +228,6 @@ const ManageReviewsPage = () => {
     });
   };
 
-  // Initial Data Load Loader
   if (loading)
     return (
       <div className="flex justify-center items-center h-64">
@@ -160,7 +247,7 @@ const ManageReviewsPage = () => {
           </p>
         </div>
         <button
-          onClick={() => setShowModal(true)}
+          onClick={openCreateModal}
           className="bg-snap-dark dark:bg-snap-yellow text-white dark:text-black font-bold px-5 py-3 rounded-xl flex items-center gap-2 hover:opacity-90 transition shadow-sm"
         >
           <FaPlusCircle /> Add Custom Review
@@ -216,6 +303,17 @@ const ManageReviewsPage = () => {
                           title="Verified"
                         />
                       )}
+                      {r.socialLink && (
+                        <a
+                          href={r.socialLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ml-2 text-blue-500 hover:text-blue-600"
+                          title="View Profile"
+                        >
+                          <FaLink className="inline" size={12} />
+                        </a>
+                      )}
                     </td>
                     <td className="p-4 text-yellow-500 flex mt-1 items-center">
                       {[...Array(r.rating)].map((_, i) => (
@@ -246,14 +344,24 @@ const ManageReviewsPage = () => {
                         )}
                       </div>
                     </td>
+                    {/* 🟡 NAYA JADOO: Edit & Delete Buttons */}
                     <td className="p-4 text-center">
-                      <button
-                        onClick={() => handleDelete(r._id)}
-                        className="text-gray-400 hover:text-red-600 transition"
-                        title="Delete Review"
-                      >
-                        <FaTrashAlt size={18} />
-                      </button>
+                      <div className="flex justify-center items-center gap-3">
+                        <button
+                          onClick={() => handleEditClick(r)}
+                          className="text-blue-400 hover:text-blue-600 transition"
+                          title="Edit Review"
+                        >
+                          <FaEdit size={18} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(r._id)}
+                          className="text-red-400 hover:text-red-600 transition"
+                          title="Delete Review"
+                        >
+                          <FaTrashAlt size={18} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -274,11 +382,12 @@ const ManageReviewsPage = () => {
             </button>
 
             <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">
-              Add Local Deal Review
+              {editingId ? "Edit Review" : "Add Local Deal Review"}
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-              Manually add reviews for customers who bought from you via
-              WhatsApp or Facebook.
+              {editingId
+                ? "Update the details of this review."
+                : "Manually add reviews for customers who bought from you."}
             </p>
 
             <form onSubmit={submitCustomReview} className="space-y-5">
@@ -300,6 +409,22 @@ const ManageReviewsPage = () => {
 
               <div>
                 <label className=" text-sm font-bold text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-2">
+                  <FaLink className="text-gray-400" /> Buyer Profile Link
+                  (Optional)
+                </label>
+                <input
+                  type="url"
+                  placeholder="e.g., https://snapchat.com/add/username"
+                  className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-snap-yellow outline-none transition"
+                  value={customData.socialLink}
+                  onChange={(e) =>
+                    setCustomData({ ...customData, socialLink: e.target.value })
+                  }
+                />
+              </div>
+
+              <div>
+                <label className=" text-sm font-bold text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-2">
                   <FaCalendarAlt /> Review Date (Optional)
                 </label>
                 <input
@@ -310,9 +435,6 @@ const ManageReviewsPage = () => {
                     setCustomData({ ...customData, createdAt: e.target.value })
                   }
                 />
-                <p className="text-xs text-gray-400 mt-1">
-                  Leave empty to use today's date.
-                </p>
               </div>
 
               <div>
@@ -324,11 +446,7 @@ const ManageReviewsPage = () => {
                     <FaStar
                       key={star}
                       size={32}
-                      className={`cursor-pointer transition ${
-                        star <= customData.rating
-                          ? "text-yellow-400"
-                          : "text-gray-300 dark:text-gray-700"
-                      }`}
+                      className={`cursor-pointer transition ${star <= customData.rating ? "text-yellow-400" : "text-gray-300 dark:text-gray-700"}`}
                       onClick={() =>
                         setCustomData({ ...customData, rating: star })
                       }
@@ -353,19 +471,68 @@ const ManageReviewsPage = () => {
                 ></textarea>
               </div>
 
-              <div>
-                <label className=" text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
-                  <FaImage /> Add Chat Screenshots (Optional)
+              {/* 🟡 VIP IMAGE UPLOAD & PREVIEW SECTION */}
+              <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
+                <label className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                  <FaImage /> Add Chat Screenshots (Optional, Max 2)
                 </label>
                 <input
                   type="file"
                   multiple
                   accept="image/*"
-                  onChange={(e) => setCustomImages(e.target.files)}
-                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-yellow-50 file:text-yellow-700 hover:file:bg-yellow-100 dark:file:bg-yellow-900/20 dark:file:text-yellow-500 cursor-pointer transition"
+                  onChange={handleImageChange}
+                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-yellow-100 file:text-yellow-700 hover:file:bg-yellow-200 dark:file:bg-yellow-900/30 dark:file:text-snap-yellow cursor-pointer transition mb-2"
                 />
-                <p className="text-xs text-gray-400 mt-2 ml-1">
-                  Max 2 images are recommended for best layout.
+
+                <div className="flex flex-wrap gap-3 mt-3">
+                  {/* Purani (Existing) Images Dikhana */}
+                  {existingImages.map((imgUrl, index) => (
+                    <div
+                      key={`existing-${index}`}
+                      className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600 shadow-sm group"
+                    >
+                      <img
+                        src={imgUrl}
+                        alt="existing"
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeExistingImage(index)}
+                        className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded-full shadow-md transition-colors"
+                        title="Remove image"
+                      >
+                        <FaTimes size={10} />
+                      </button>
+                    </div>
+                  ))}
+
+                  {/* Nayi (Custom) Images Dikhana */}
+                  {customImages.map((file, index) => (
+                    <div
+                      key={`custom-${index}`}
+                      className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600 shadow-sm group"
+                    >
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt="preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeCustomImage(index)}
+                        className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded-full shadow-md transition-colors"
+                        title="Remove image"
+                      >
+                        <FaTimes size={10} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <p className="text-xs text-gray-400 mt-2">
+                  Selected: {existingImages.length + customImages.length}/2
+                  images
                 </p>
               </div>
 
@@ -374,7 +541,7 @@ const ManageReviewsPage = () => {
                 disabled={isSubmitting}
                 className="w-full bg-snap-yellow hover:bg-yellow-500 font-black py-3.5 rounded-xl text-black transition flex justify-center items-center gap-2 mt-4 shadow-md"
               >
-                Publish to Store
+                {editingId ? "Update Review" : "Publish to Store"}
               </button>
             </form>
           </div>

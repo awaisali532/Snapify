@@ -1,7 +1,11 @@
+import { useContext } from "react";
 import { FaCheckCircle, FaBolt } from "react-icons/fa";
 import { Link } from "react-router-dom";
+import { CurrencyContext } from "../../../context/CurrencyContext";
 
 const ScorePackageCard = ({ pkg }) => {
+  const { calculatePrice, symbols, currency } = useContext(CurrencyContext); // 🟡 Context Use Kiya
+
   return (
     <div className="bg-white dark:bg-snap-card rounded-3xl p-8 border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-all flex flex-col h-full relative">
       <div className="mb-6">
@@ -15,7 +19,8 @@ const ScorePackageCard = ({ pkg }) => {
 
       <div className="mb-6">
         <span className="text-4xl font-black text-gray-900 dark:text-white">
-          Rs. {pkg.price}
+          {/* 🟡 NAYA JADOO: Dynamic Price */}
+          {symbols[currency]} {calculatePrice(pkg.price)}
         </span>
       </div>
 
@@ -25,7 +30,6 @@ const ScorePackageCard = ({ pkg }) => {
         </p>
         <ul className="space-y-3 mb-8">
           <li className="flex items-start gap-2 text-gray-600 dark:text-gray-400 text-sm">
-            {/* NAYA JADOO: Icon color fix */}
             <FaCheckCircle className="text-yellow-500 dark:text-snap-yellow mt-0.5 shrink-0" />
             <span>+{pkg.scoreAmount.toLocaleString()} Snap Score</span>
           </li>
@@ -34,7 +38,6 @@ const ScorePackageCard = ({ pkg }) => {
               key={index}
               className="flex items-start gap-2 text-gray-600 dark:text-gray-400 text-sm"
             >
-              {/* NAYA JADOO: Icon color fix */}
               <FaCheckCircle className="text-yellow-500 dark:text-snap-yellow mt-0.5 shrink-0" />
               <span>{feature}</span>
             </li>

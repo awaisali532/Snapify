@@ -5,6 +5,7 @@ const {
   createReview,
   addCustomReview,
   getAllReviews,
+  updateReview, // 🟡 Import kiya
   deleteReview,
 } = require("../controllers/review-controller");
 
@@ -16,8 +17,9 @@ router.get("/", getAllReviews);
 // Logged-in User Route (My Orders se review dene ke liye)
 router.post("/", protect, createReview);
 
-// Admin Routes (Custom add aur delete karne ke liye)
+// Admin Routes (Custom add, edit, aur delete karne ke liye)
 router.post("/admin", protect, admin, addCustomReview);
+router.put("/:id", protect, admin, updateReview); // 🟡 NAYA ROUTE EDIT KE LIYE
 router.delete("/:id", protect, admin, deleteReview);
 
 module.exports = router;

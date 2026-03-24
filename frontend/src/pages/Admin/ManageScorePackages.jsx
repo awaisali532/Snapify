@@ -9,6 +9,8 @@ import {
   FaEye,
   FaEyeSlash,
   FaBolt,
+  FaStar,
+  FaEdit, // 🟡 NAYA JADOO: Edit Icon import kiya
 } from "react-icons/fa";
 import Swal from "sweetalert2";
 import { LoaderContext } from "../../context/LoaderContext";
@@ -18,11 +20,12 @@ const ManageScorePackages = () => {
   const [loading, setLoading] = useState(true);
   const { showLoader, hideLoader } = useContext(LoaderContext);
 
-  // Modal States
   const [showModal, setShowModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Form State
+  // 🟡 NAYA JADOO: Track karne ke liye ke naya ban raha hai ya edit ho raha hai
+  const [editingId, setEditingId] = useState(null);
+
   const [formData, setFormData] = useState({
     title: "",
     scoreAmount: "",
@@ -30,7 +33,7 @@ const ManageScorePackages = () => {
     deliveryTime: "1-2 Days",
     isOffer: false,
     offerPrice: "",
-    features: "", // Line by line features
+    features: "",
     isActive: true,
   });
 
@@ -38,7 +41,6 @@ const ManageScorePackages = () => {
     try {
       const API_URL = import.meta.env.VITE_API_URL;
       const token = localStorage.getItem("token");
-      // Admin route se mangwayenge taake hidden wale bhi nazar aayein
       const response = await axios.get(`${API_URL}/api/score-packages/admin`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -54,19 +56,16 @@ const ManageScorePackages = () => {
     fetchPackages();
   }, []);
 
-  // TOGGLE ACTIVE STATUS (Hide/Show on Website)
   const toggleActiveStatus = async (id, currentStatus) => {
     showLoader("Updating status...");
     try {
       const API_URL = import.meta.env.VITE_API_URL;
       const token = localStorage.getItem("token");
-
       await axios.put(
         `${API_URL}/api/score-packages/${id}`,
         { isActive: !currentStatus },
         { headers: { Authorization: `Bearer ${token}` } },
       );
-
       fetchPackages();
     } catch (error) {
       Swal.fire("Error", "Could not update status", "error");
@@ -75,7 +74,29 @@ const ManageScorePackages = () => {
     }
   };
 
-  // DELETE PACKAGE
+  const togglePopularStatus = async (id, currentStatus) => {
+    if (currentStatus) return;
+
+    showLoader("Setting as Popular...");
+    try {
+      const API_URL = import.meta.env.VITE_API_URL;
+      const token = localStorage.getItem("token");
+
+      await axios.put(
+        `${API_URL}/api/score-packages/make-popular/${id}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+
+      Swal.fire("Success", "Package marked as Most Popular!", "success");
+      fetchPackages();
+    } catch (error) {
+      Swal.fire("Error", "Could not update popular status", "error");
+    } finally {
+      hideLoader();
+    }
+  };
+
   const handleDelete = async (id) => {
     const isConfirm = await Swal.fire({
       title: "Delete Package?",
@@ -106,11 +127,41 @@ const ManageScorePackages = () => {
     }
   };
 
-  // ADD NEW PACKAGE
+  // 🟡 NAYA JADOO: Edit button click karne par data form mein bhar do
+  const handleEditClick = (pkg) => {
+    setEditingId(pkg._id);
+    setFormData({
+      title: pkg.title,
+      scoreAmount: pkg.scoreAmount,
+      price: pkg.price,
+      deliveryTime: pkg.deliveryTime,
+      isOffer: pkg.isOffer,
+      offerPrice: pkg.offerPrice || "",
+      features: pkg.features.join("\n"), // Array ko wapas enter (new line) wali string mein badal diya
+      isActive: pkg.isActive,
+    });
+    setShowModal(true);
+  };
+
+  // 🟡 NAYA JADOO: Modal open karne ka function (Reset karne ke sath)
+  const openCreateModal = () => {
+    setEditingId(null);
+    setFormData({
+      title: "",
+      scoreAmount: "",
+      price: "",
+      deliveryTime: "1-2 Days",
+      isOffer: false,
+      offerPrice: "",
+      features: "",
+      isActive: true,
+    });
+    setShowModal(true);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Features ko line by line array me convert karna
     const featuresArray = formData.features
       .split("\n")
       .map((f) => f.trim())
@@ -122,7 +173,8 @@ const ManageScorePackages = () => {
 
     if (
       formData.isOffer &&
-      (!formData.offerPrice || formData.offerPrice >= formData.price)
+      (!formData.offerPrice ||
+        Number(formData.offerPrice) >= Number(formData.price))
     ) {
       return Swal.fire(
         "Invalid Offer",
@@ -132,7 +184,7 @@ const ManageScorePackages = () => {
     }
 
     setIsSubmitting(true);
-    showLoader("Publishing Package...");
+    showLoader(editingId ? "Updating Package..." : "Publishing Package...");
 
     try {
       const API_URL = import.meta.env.VITE_API_URL;
@@ -146,25 +198,31 @@ const ManageScorePackages = () => {
         offerPrice: formData.isOffer ? Number(formData.offerPrice) : 0,
       };
 
-      await axios.post(`${API_URL}/api/score-packages`, packageData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // 🟡 JADOO: Agar edit ho raha hai toh PUT route call karo, warna POST
+      if (editingId) {
+        await axios.put(
+          `${API_URL}/api/score-packages/${editingId}`,
+          packageData,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+        Swal.fire("Updated!", "Score Package has been updated.", "success");
+      } else {
+        await axios.post(`${API_URL}/api/score-packages`, packageData, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        Swal.fire("Added!", "New Score Package is live.", "success");
+      }
 
-      Swal.fire("Added!", "New Score Package is live.", "success");
       setShowModal(false);
-      setFormData({
-        title: "",
-        scoreAmount: "",
-        price: "",
-        deliveryTime: "1-2 Days",
-        isOffer: false,
-        offerPrice: "",
-        features: "",
-        isActive: true,
-      });
       fetchPackages();
     } catch (error) {
-      Swal.fire("Error", "Failed to add package", "error");
+      Swal.fire(
+        "Error",
+        editingId ? "Failed to update package" : "Failed to add package",
+        "error",
+      );
     } finally {
       setIsSubmitting(false);
       hideLoader();
@@ -191,7 +249,7 @@ const ManageScorePackages = () => {
           </p>
         </div>
         <button
-          onClick={() => setShowModal(true)}
+          onClick={openCreateModal}
           className="bg-snap-dark dark:bg-snap-yellow text-white dark:text-black font-bold px-5 py-3 rounded-xl flex items-center gap-2 hover:opacity-90 transition shadow-sm hover:cursor-pointer"
         >
           <FaPlusCircle /> Create Package
@@ -214,6 +272,9 @@ const ManageScorePackages = () => {
                   Visibility
                 </th>
                 <th className="p-4 font-bold text-gray-700 dark:text-gray-300 text-center">
+                  Popular
+                </th>
+                <th className="p-4 font-bold text-gray-700 dark:text-gray-300 text-center">
                   Action
                 </th>
               </tr>
@@ -222,7 +283,7 @@ const ManageScorePackages = () => {
               {packages.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="4"
+                    colSpan="5"
                     className="p-8 text-center text-gray-500 dark:text-gray-400"
                   >
                     No packages found. Create one to get started!
@@ -240,6 +301,11 @@ const ManageScorePackages = () => {
                         {pkg.isOffer && (
                           <span className="bg-red-100 text-red-600 text-[10px] px-2 py-0.5 rounded-full font-black flex items-center gap-1">
                             <FaFire /> OFFER
+                          </span>
+                        )}
+                        {pkg.isPopular && (
+                          <span className="bg-blue-100 text-blue-600 text-[10px] px-2 py-0.5 rounded-full font-black flex items-center gap-1">
+                            <FaStar /> POPULAR
                           </span>
                         )}
                       </p>
@@ -288,12 +354,41 @@ const ManageScorePackages = () => {
                     </td>
                     <td className="p-4 text-center">
                       <button
-                        onClick={() => handleDelete(pkg._id)}
-                        className="text-gray-400 hover:text-red-600 transition"
-                        title="Delete Package"
+                        onClick={() =>
+                          togglePopularStatus(pkg._id, pkg.isPopular)
+                        }
+                        className={`p-2 rounded-full mx-auto transition-colors ${
+                          pkg.isPopular
+                            ? "text-yellow-500 bg-yellow-100 dark:bg-yellow-900/30 cursor-default"
+                            : "text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                        }`}
+                        title={
+                          pkg.isPopular
+                            ? "Currently Most Popular"
+                            : "Set as Most Popular"
+                        }
                       >
-                        <FaTrashAlt size={18} />
+                        <FaStar size={18} />
                       </button>
+                    </td>
+                    {/* 🟡 NAYA JADOO: Action buttons (Edit & Delete) */}
+                    <td className="p-4 text-center">
+                      <div className="flex items-center justify-center gap-3">
+                        <button
+                          onClick={() => handleEditClick(pkg)}
+                          className="text-blue-400 hover:text-blue-600 transition"
+                          title="Edit Package"
+                        >
+                          <FaEdit size={18} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(pkg._id)}
+                          className="text-red-400 hover:text-red-600 transition"
+                          title="Delete Package"
+                        >
+                          <FaTrashAlt size={18} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -303,7 +398,7 @@ const ManageScorePackages = () => {
         </div>
       </div>
 
-      {/* CREATE PACKAGE MODAL */}
+      {/* CREATE / EDIT PACKAGE MODAL */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto pt-20 pb-10">
           <div className="bg-white dark:bg-snap-card rounded-2xl w-full max-w-2xl p-6 md:p-8 shadow-2xl relative">
@@ -314,15 +409,17 @@ const ManageScorePackages = () => {
               <FaTimesCircle size={24} />
             </button>
 
+            {/* 🟡 Modal Title Dynamics */}
             <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">
-              Create Score Package
+              {editingId ? "Edit Score Package" : "Create Score Package"}
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-              Design a new boosting package for your storefront.
+              {editingId
+                ? "Modify package details and pricing."
+                : "Design a new boosting package for your storefront."}
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              {/* ROW 1: Title & Score */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
@@ -356,7 +453,6 @@ const ManageScorePackages = () => {
                 </div>
               </div>
 
-              {/* ROW 2: Price & Delivery */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
@@ -390,7 +486,6 @@ const ManageScorePackages = () => {
                 </div>
               </div>
 
-              {/* OFFER TOGGLE SECTION */}
               <div className="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/50 rounded-xl p-4">
                 <div className="flex items-center gap-3 mb-3">
                   <input
@@ -429,7 +524,6 @@ const ManageScorePackages = () => {
                 )}
               </div>
 
-              {/* FEATURES (TEXTAREA) */}
               <div>
                 <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
                   Package Features (One per line) *
@@ -437,25 +531,22 @@ const ManageScorePackages = () => {
                 <textarea
                   rows="4"
                   required
-                  placeholder="100% Safe & Ban-Free&#10;No Password Required&#10;Fast Delivery"
+                  placeholder="100% Safe & Ban-Free&#10;No Password Required"
                   className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-yellow-500 dark:focus:ring-snap-yellow outline-none"
                   value={formData.features}
                   onChange={(e) =>
                     setFormData({ ...formData, features: e.target.value })
                   }
                 ></textarea>
-                <p className="text-xs text-gray-500 mt-1">
-                  Press "Enter" to add a new bullet point.
-                </p>
               </div>
 
-              {/* SUBMIT BUTTON */}
+              {/* 🟡 Submit button text dynamics */}
               <button
                 type="submit"
                 disabled={isSubmitting}
                 className="w-full bg-yellow-500 dark:bg-snap-yellow hover:bg-yellow-600 dark:hover:bg-yellow-500 font-black py-3.5 rounded-xl text-black transition flex justify-center items-center gap-2 mt-4 shadow-md"
               >
-                Publish Package
+                {editingId ? "Update Package" : "Publish Package"}
               </button>
             </form>
           </div>

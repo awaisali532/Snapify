@@ -2,7 +2,7 @@ const Review = require("../models/review-model");
 const Order = require("../models/order-model");
 const cloudinary = require("cloudinary").v2;
 
-// Helper Function: Cloudinary se tasweer delete karne ke liye (jab review delete ho)
+// Helper Function: Cloudinary se tasweer delete karne ke liye
 const extractPublicId = (url) => {
   try {
     const parts = url.split("/");
@@ -15,13 +15,12 @@ const extractPublicId = (url) => {
 };
 
 // ==========================================
-// 1. User khud review add karega (Sirf Verified Order wale)
+// 1. User khud review add karega
 // ==========================================
 const createReview = async (req, res) => {
   try {
-    const { rating, comment, images } = req.body;
+    const { rating, comment, images, socialLink } = req.body;
 
-    // Check: Kya is user ka koi Verified order mojood hai?
     const hasVerifiedOrder = await Order.findOne({
       user: req.user._id,
       status: "Verified",
@@ -34,7 +33,6 @@ const createReview = async (req, res) => {
       });
     }
 
-    // Check: Kya isne pehle hi review de diya hai? (1 user = 1 review allow hai)
     const alreadyReviewed = await Review.findOne({ user: req.user._id });
     if (alreadyReviewed) {
       return res.status(400).json({
@@ -45,10 +43,11 @@ const createReview = async (req, res) => {
 
     const review = new Review({
       user: req.user._id,
-      name: req.user.name, // User collection se naam utha liya
+      name: req.user.name,
       rating,
       comment,
-      images: images || [], // NAYA: WhatsApp/Payment screenshots
+      socialLink: socialLink || "",
+      images: images || [],
       isVerifiedPurchase: true,
     });
 
@@ -70,23 +69,30 @@ const createReview = async (req, res) => {
 };
 
 // ==========================================
-// 2. Admin khud custom review add karega (Past Date support ke sath)
+// 2. Admin khud custom review add karega
 // ==========================================
 const addCustomReview = async (req, res) => {
   try {
-    const { name, rating, comment, images, isVerifiedPurchase, createdAt } =
-      req.body;
+    const {
+      name,
+      rating,
+      comment,
+      images,
+      isVerifiedPurchase,
+      createdAt,
+      socialLink,
+    } = req.body;
 
     const reviewData = {
       name,
       rating,
       comment,
+      socialLink: socialLink || "",
       images: images || [],
       isVerifiedPurchase:
         isVerifiedPurchase !== undefined ? isVerifiedPurchase : true,
     };
 
-    // NAYA JADOO: Agar admin ne purani date bheji hai, toh wo lagao, warna aaj ki auto lag jayegi
     if (createdAt) {
       reviewData.createdAt = new Date(createdAt);
     }
@@ -109,12 +115,12 @@ const addCustomReview = async (req, res) => {
     });
   }
 };
+
 // ==========================================
-// 3. Website ke liye saare reviews fetch karna (Public)
+// 3. Website ke liye saare reviews fetch karna
 // ==========================================
 const getAllReviews = async (req, res) => {
   try {
-    // Sab se naye reviews sab se pehle aayenge
     const reviews = await Review.find().sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -132,7 +138,66 @@ const getAllReviews = async (req, res) => {
 };
 
 // ==========================================
-// 4. Admin ghalat reviews delete karega (Aur images bhi saaf karega)
+// 4. Admin review update karega (NAYA JADOO ✏️)
+// ==========================================
+const updateReview = async (req, res) => {
+  try {
+    let review = await Review.findById(req.params.id);
+
+    if (!review) {
+      return res.status(404).json({
+        success: false,
+        message: "Review not found",
+      });
+    }
+
+    // Date fix: Agar empty string aayi toh Mongoose error na de
+    if (req.body.createdAt === "") {
+      delete req.body.createdAt;
+    }
+
+    // Smart Image Sync: Agar user ne purani tasweer cross kardi toh usay Cloudinary se uda do
+    if (req.body.images && Array.isArray(req.body.images)) {
+      const existingImages = review.images || [];
+      const incomingImages = req.body.images;
+
+      const imagesToDelete = existingImages.filter(
+        (img) => !incomingImages.includes(img),
+      );
+
+      for (const imageUrl of imagesToDelete) {
+        const publicId = extractPublicId(imageUrl);
+        if (publicId)
+          await cloudinary.uploader
+            .destroy(publicId)
+            .catch((err) => console.log(err));
+      }
+    } else {
+      delete req.body.images; // Agar images array mein nahi aaye toh isey ignore karo
+    }
+
+    review = await Review.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Review updated successfully",
+      data: review,
+    });
+  } catch (error) {
+    console.error("Update Review Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update review",
+      error: error.message,
+    });
+  }
+};
+
+// ==========================================
+// 5. Admin ghalat reviews delete karega
 // ==========================================
 const deleteReview = async (req, res) => {
   try {
@@ -144,7 +209,6 @@ const deleteReview = async (req, res) => {
       });
     }
 
-    // NAYA JADOO: Agar review mein screenshots hain, toh unko Cloudinary se delete karo
     if (review.images && review.images.length > 0) {
       for (const imgUrl of review.images) {
         const publicId = extractPublicId(imgUrl);
@@ -152,7 +216,6 @@ const deleteReview = async (req, res) => {
       }
     }
 
-    // Database se review uda do
     await review.deleteOne();
 
     res.status(200).json({
@@ -172,5 +235,6 @@ module.exports = {
   createReview,
   addCustomReview,
   getAllReviews,
+  updateReview, // 🟡 Export Update Function
   deleteReview,
 };

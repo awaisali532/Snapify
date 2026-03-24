@@ -1,7 +1,11 @@
+import { useContext } from "react";
 import { FaCheckCircle, FaFire } from "react-icons/fa";
 import { Link } from "react-router-dom";
+import { CurrencyContext } from "../../../context/CurrencyContext"; // 🟡 NAYA JADOO
 
 const OfferPackageCard = ({ pkg }) => {
+  const { calculatePrice, symbols, currency } = useContext(CurrencyContext); // 🟡 Context Use Kiya
+
   return (
     <div className="bg-linear-to-b from-yellow-50 to-white dark:from-yellow-900/10 dark:to-snap-card rounded-3xl p-8 border-2 border-yellow-500 dark:border-snap-yellow shadow-xl md:-translate-y-4 hover:-translate-y-6 transition-transform flex flex-col h-full relative z-10">
       {/* VIP BADGE */}
@@ -20,10 +24,12 @@ const OfferPackageCard = ({ pkg }) => {
 
       <div className="mb-6">
         <p className="text-sm text-gray-500 dark:text-gray-400 line-through mb-1 font-medium">
-          Regular Price: Rs. {pkg.price}
+          {/* 🟡 NAYA JADOO: Dynamic Regular Price */}
+          Regular Price: {symbols[currency]} {calculatePrice(pkg.price)}
         </p>
         <span className="text-5xl font-black text-yellow-500 dark:text-snap-yellow">
-          Rs. {pkg.offerPrice}
+          {/* 🟡 NAYA JADOO: Dynamic Offer Price */}
+          {symbols[currency]} {calculatePrice(pkg.offerPrice)}
         </span>
       </div>
 

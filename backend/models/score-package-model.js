@@ -19,7 +19,6 @@ const scorePackageSchema = new mongoose.Schema(
       type: String,
       required: [true, "Delivery time is required (e.g., 2-3 Days)"],
     },
-
     isOffer: {
       type: Boolean,
       default: false,
@@ -28,12 +27,15 @@ const scorePackageSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-
     features: {
       type: [String],
       default: [],
     },
-
+    // 🟡 NAYA JADOO: Popular ka field add kiya
+    isPopular: {
+      type: Boolean,
+      default: false,
+    },
     isActive: {
       type: Boolean,
       default: true,

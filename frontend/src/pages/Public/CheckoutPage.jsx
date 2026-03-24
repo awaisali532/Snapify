@@ -2,7 +2,14 @@ import { useState, useEffect, useContext, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Swal from "sweetalert2";
-import { FaTimes } from "react-icons/fa";
+import {
+  FaTimes,
+  FaInfoCircle,
+  FaBolt,
+  FaClock,
+  FaExclamationTriangle,
+  FaCoins,
+} from "react-icons/fa";
 import { LoaderContext } from "../../context/LoaderContext";
 import { CurrencyContext } from "../../context/CurrencyContext";
 import { AuthContext } from "../../context/AuthContext";
@@ -18,7 +25,6 @@ const CheckoutPage = () => {
   const [account, setAccount] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // NAYA JADOO: Payment methods state
   const [paymentMethods, setPaymentMethods] = useState([]);
 
   const [formData, setFormData] = useState({
@@ -32,7 +38,6 @@ const CheckoutPage = () => {
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    // 1. Login Check
     if (!user) {
       Swal.fire("Access Denied", "Please login to checkout.", "warning").then(
         () => navigate("/login"),
@@ -40,7 +45,6 @@ const CheckoutPage = () => {
       return;
     }
 
-    // NAYA JADOO: Admin Block Logic
     if (user.role === "admin") {
       Swal.fire("Admin Restricted", "Admins cannot place orders.", "info").then(
         () => navigate("/"),
@@ -52,7 +56,6 @@ const CheckoutPage = () => {
       try {
         const API_URL = import.meta.env.VITE_API_URL;
 
-        // 1. Fetch Account Details
         const response = await axios.get(`${API_URL}/api/accounts/${id}`);
         if (response.data.data.isSold) {
           Swal.fire(
@@ -64,7 +67,6 @@ const CheckoutPage = () => {
         }
         setAccount(response.data.data);
 
-        // 2. Fetch Dynamic Payment Methods
         const paymentsResponse = await axios.get(
           `${API_URL}/api/payment-methods`,
         );
@@ -98,9 +100,6 @@ const CheckoutPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // ==========================================
-    // 1. PEHLE FORM KI VALIDATION CHECK KAREIN
-    // ==========================================
     if (!formData.paymentMethod) {
       return Swal.fire(
         "Required",
@@ -117,9 +116,6 @@ const CheckoutPage = () => {
       );
     }
 
-    // ==========================================
-    // 2. AGAR FORM THEEK HAI, TOH SAFETY POPUP DIKHAYEIN
-    // ==========================================
     const result = await Swal.fire({
       title: "🛡️ Anti-Ban Safety Rules",
       html: `
@@ -146,12 +142,8 @@ const CheckoutPage = () => {
       background: "#ffffff",
     });
 
-    // Agar user ne Cancel kar diya, toh yahin ruk jao
     if (!result.isConfirmed) return;
 
-    // ==========================================
-    // 3. AGAR AGREE KAR LIYA, TOH ORDER PLACE KAREIN
-    // ==========================================
     showLoader("Placing Order... 🚀");
 
     try {
@@ -200,6 +192,7 @@ const CheckoutPage = () => {
       hideLoader();
     }
   };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
@@ -211,7 +204,6 @@ const CheckoutPage = () => {
   const displaySymbol = symbols[currency] || "Rs";
   const displayPrice = account ? calculatePrice(account.price) : "0";
 
-  // NAYA JADOO: Get Selected Payment Details
   const selectedPaymentMethodDetails = paymentMethods.find(
     (m) => m.methodName === formData.paymentMethod,
   );
@@ -229,150 +221,198 @@ const CheckoutPage = () => {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8 items-start">
-        {/* LEFT SIDE: PAYMENT FORM */}
-        <div className="w-full lg:w-2/3 bg-white dark:bg-snap-card rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 md:p-8">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 border-b border-gray-100 dark:border-gray-800 pb-3">
-            Billing & Payment Details
-          </h2>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
-                  Full Name *
-                </label>
-                <input
-                  type="text"
-                  name="buyerName"
-                  required
-                  value={formData.buyerName}
-                  onChange={handleChange}
-                  placeholder="Awais Ali"
-                  className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-snap-dark border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-yellow-500 dark:focus:ring-snap-yellow outline-none transition"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
-                  WhatsApp Number *
-                </label>
-                <input
-                  type="text"
-                  name="buyerPhone"
-                  required
-                  value={formData.buyerPhone}
-                  onChange={handleChange}
-                  placeholder="+92 3XX XXXXXXX"
-                  className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-snap-dark border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-yellow-500 dark:focus:ring-snap-yellow outline-none transition"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
-                Email Address (Optional)
-              </label>
-              <input
-                type="email"
-                name="buyerEmail"
-                value={formData.buyerEmail}
-                onChange={handleChange}
-                placeholder="awais@example.com"
-                className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-snap-dark border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-yellow-500 dark:focus:ring-snap-yellow outline-none transition"
-              />
-            </div>
-
-            {/* DYNAMIC Payment Method Dropdown */}
-            <div>
-              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                Select Payment Method *
-              </label>
-              <select
-                name="paymentMethod"
-                required
-                value={formData.paymentMethod}
-                onChange={handleChange}
-                className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-snap-dark border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-yellow-500 dark:focus:ring-snap-yellow outline-none transition"
-              >
-                <option value="" disabled>
-                  -- Choose a method --
-                </option>
-                {paymentMethods.map((method) => (
-                  <option key={method._id} value={method.methodName}>
-                    {method.methodName}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* DYNAMIC Payment Details Alert */}
-            {selectedPaymentMethodDetails && (
-              <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-500 dark:border-snap-yellow p-4 rounded-r-lg">
-                <h4 className="font-bold text-gray-900 dark:text-yellow-400 mb-2">
-                  {selectedPaymentMethodDetails.title}
-                </h4>
-                <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line text-sm leading-relaxed">
-                  {selectedPaymentMethodDetails.details}
-                </p>
-                <p className="text-xs font-bold text-red-500 mt-3">
-                  * Please send exactly{" "}
-                  <b>
-                    {displaySymbol} {displayPrice}
-                  </b>{" "}
-                  to the above account and upload the screenshot below.
+        {/* LEFT SIDE: GUIDELINES & PAYMENT FORM */}
+        <div className="w-full lg:w-2/3 space-y-6">
+          {/* ==========================================
+              GLOBAL PAYMENT GUIDELINES BOX
+              ========================================== */}
+          <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/50 rounded-2xl p-6 shadow-sm">
+            <h3 className="font-bold text-blue-800 dark:text-blue-400 mb-4 flex items-center gap-2 text-lg">
+              <FaInfoCircle /> Important Payment Guidelines
+            </h3>
+            <div className="space-y-4 text-sm text-blue-900 dark:text-blue-300">
+              {/* NAYA JADOO: EXACT AMOUNT RULE */}
+              <div className="flex gap-3">
+                <FaCoins className="text-xl shrink-0 text-green-500 mt-0.5" />
+                <p>
+                  <b>Exact Amount Required:</b> Network or transaction fees are{" "}
+                  <b>NOT</b> included in the price. You must cover any sending
+                  fees (e.g., Crypto network fees, bank charges). If we receive
+                  an incomplete amount, your order will remain pending until the
+                  balance is cleared.
                 </p>
               </div>
-            )}
+              <div className="flex gap-3">
+                <FaBolt className="text-xl shrink-0 text-yellow-500 mt-0.5" />
+                <p>
+                  <b>Fast Transfers Preferred:</b> For instant delivery, we
+                  highly recommend using payment methods that clear within{" "}
+                  <b>5 to 60 minutes</b>.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <FaClock className="text-xl shrink-0 text-orange-500 mt-0.5" />
+                <p>
+                  <b>Delayed Payments:</b> If your transfer app shows it will
+                  take days to arrive, please try an alternative fast method
+                  first. If you have no other option, proceed with the payment,
+                  but you <b>must contact us on WhatsApp</b> with your receipt
+                  and expected timeframe.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <FaExclamationTriangle className="text-xl shrink-0 text-red-500 mt-0.5" />
+                <p>
+                  <b>Order Rejection:</b> You will have to wait until the funds
+                  clear. If the payment is not received within the stated
+                  timeframe, your order will be automatically rejected.
+                </p>
+              </div>
+            </div>
+          </div>
 
-            {/* Screenshot Upload */}
-            <div>
-              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                Upload Payment Screenshot *
-              </label>
-              <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-6 bg-gray-50 dark:bg-gray-800/50 text-center">
-                {!screenshot && (
+          {/* MAIN PAYMENT FORM */}
+          <div className="bg-white dark:bg-snap-card rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 md:p-8">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 border-b border-gray-100 dark:border-gray-800 pb-3">
+              Billing & Payment Details
+            </h2>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
+                    Full Name *
+                  </label>
                   <input
-                    type="file"
+                    type="text"
+                    name="buyerName"
                     required
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    ref={fileInputRef}
-                    className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-yellow-500 dark:file:bg-snap-yellow file:text-black hover:file:bg-yellow-600 cursor-pointer text-gray-600 dark:text-gray-400"
+                    value={formData.buyerName}
+                    onChange={handleChange}
+                    placeholder="Awais Ali"
+                    className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-snap-dark border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-yellow-500 dark:focus:ring-snap-yellow outline-none transition"
                   />
-                )}
+                </div>
 
-                {screenshot && (
-                  <div className="mt-2 flex flex-col items-center">
-                    <p className="text-sm text-green-600 dark:text-green-400 font-bold mb-3">
-                      Selected File: {screenshot.name}
-                    </p>
-                    <div className="relative inline-block group">
-                      <img
-                        src={URL.createObjectURL(screenshot)}
-                        alt="Preview"
-                        className="h-32 object-contain rounded-lg shadow-md border border-gray-200 dark:border-gray-700"
-                      />
-                      <button
-                        type="button"
-                        onClick={removeScreenshot}
-                        className="absolute -top-3 -right-3 bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-full shadow-lg transition-transform hover:scale-110 z-10"
-                        title="Remove image"
-                      >
-                        <FaTimes size={14} />
-                      </button>
-                    </div>
-                  </div>
-                )}
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
+                    WhatsApp Number *
+                  </label>
+                  <input
+                    type="text"
+                    name="buyerPhone"
+                    required
+                    value={formData.buyerPhone}
+                    onChange={handleChange}
+                    placeholder="+92 3XX XXXXXXX"
+                    className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-snap-dark border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-yellow-500 dark:focus:ring-snap-yellow outline-none transition"
+                  />
+                </div>
               </div>
-            </div>
 
-            <button
-              type="submit"
-              className="w-full bg-yellow-500 dark:bg-snap-yellow text-black font-black text-lg py-4 rounded-xl shadow-lg transition-all duration-300 hover:-translate-y-1"
-            >
-              Submit Order & Verify 🚀
-            </button>
-          </form>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  Email Address (Optional)
+                </label>
+                <input
+                  type="email"
+                  name="buyerEmail"
+                  value={formData.buyerEmail}
+                  onChange={handleChange}
+                  placeholder="awais@example.com"
+                  className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-snap-dark border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-yellow-500 dark:focus:ring-snap-yellow outline-none transition"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                  Select Payment Method *
+                </label>
+                <select
+                  name="paymentMethod"
+                  required
+                  value={formData.paymentMethod}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-snap-dark border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-yellow-500 dark:focus:ring-snap-yellow outline-none transition"
+                >
+                  <option value="" disabled>
+                    -- Choose a method --
+                  </option>
+                  {paymentMethods.map((method) => (
+                    <option key={method._id} value={method.methodName}>
+                      {method.methodName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedPaymentMethodDetails && (
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-500 dark:border-snap-yellow p-4 rounded-r-lg">
+                  <h4 className="font-bold text-gray-900 dark:text-yellow-400 mb-2">
+                    {selectedPaymentMethodDetails.title}
+                  </h4>
+                  <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line text-sm leading-relaxed">
+                    {selectedPaymentMethodDetails.details}
+                  </p>
+                  <p className="text-xs font-bold text-red-500 mt-3">
+                    * Please send exactly{" "}
+                    <b>
+                      {displaySymbol} {displayPrice}
+                    </b>{" "}
+                    to the above account and upload the screenshot below.
+                  </p>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                  Upload Payment Screenshot *
+                </label>
+                <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-6 bg-gray-50 dark:bg-gray-800/50 text-center">
+                  {!screenshot && (
+                    <input
+                      type="file"
+                      required
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      ref={fileInputRef}
+                      className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-yellow-500 dark:file:bg-snap-yellow file:text-black hover:file:bg-yellow-600 cursor-pointer text-gray-600 dark:text-gray-400"
+                    />
+                  )}
+
+                  {screenshot && (
+                    <div className="mt-2 flex flex-col items-center">
+                      <p className="text-sm text-green-600 dark:text-green-400 font-bold mb-3">
+                        Selected File: {screenshot.name}
+                      </p>
+                      <div className="relative inline-block group">
+                        <img
+                          src={URL.createObjectURL(screenshot)}
+                          alt="Preview"
+                          className="h-32 object-contain rounded-lg shadow-md border border-gray-200 dark:border-gray-700"
+                        />
+                        <button
+                          type="button"
+                          onClick={removeScreenshot}
+                          className="absolute -top-3 -right-3 bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-full shadow-lg transition-transform hover:scale-110 z-10"
+                          title="Remove image"
+                        >
+                          <FaTimes size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-yellow-500 dark:bg-snap-yellow text-black font-black text-lg py-4 rounded-xl shadow-lg transition-all duration-300 hover:-translate-y-1"
+              >
+                Submit Order & Verify 🚀
+              </button>
+            </form>
+          </div>
         </div>
 
         {/* RIGHT SIDE: ORDER SUMMARY */}

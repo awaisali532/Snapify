@@ -6,16 +6,16 @@ const {
   getAdminPackages,
   updatePackage,
   deletePackage,
+  makePopularPackage,
 } = require("../controllers/score-package-controller");
 const { protect, admin } = require("../middleware/auth-middleware");
 
-// Public route (Frontend packages dikhane ke liye)
 router.get("/", getAllPackages);
 
-// Admin route (Hidden packages bhi dekhne ke liye)
 router.get("/admin", protect, admin, getAdminPackages);
 
-// Admin only routes (Add, Edit, Delete)
+router.put("/make-popular/:id", protect, admin, makePopularPackage);
+
 router.post("/", protect, admin, createPackage);
 router.put("/:id", protect, admin, updatePackage);
 router.delete("/:id", protect, admin, deletePackage);

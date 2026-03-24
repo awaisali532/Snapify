@@ -2,7 +2,7 @@ import { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Swal from "sweetalert2";
-import { FaTimes } from "react-icons/fa"; // NAYA JADOO: Cross Icon import kiya
+import { FaTimes } from "react-icons/fa";
 
 import { LoaderContext } from "../../context/LoaderContext";
 
@@ -19,6 +19,7 @@ const AddAccountPage = () => {
     followers: "",
     gender: "Any",
     features: "",
+    creationDate: "", // 🟡 NAYA JADOO: Creation Date Field
     snapchatUsername: "",
     snapchatPassword: "",
     recoveryEmail: "",
@@ -31,13 +32,9 @@ const AddAccountPage = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // ==========================================
-  // JADOO: Smart Image Selection
-  // ==========================================
   const handleImageChange = (e) => {
     const newFiles = Array.from(e.target.files);
 
-    // Check karein ke limit cross toh nahi ho rahi
     if (images.length + newFiles.length > 5) {
       Swal.fire(
         "Limit Reached",
@@ -46,17 +43,10 @@ const AddAccountPage = () => {
       );
       return;
     }
-
-    // Nayi tasweeron ko purani list mein add karein
     setImages((prevImages) => [...prevImages, ...newFiles]);
-
-    // Input ko clear kar dein taake same photo dubara select ki ja sake agar zaroorat ho
     e.target.value = null;
   };
 
-  // ==========================================
-  // JADOO: Image Remove Karne ka Logic
-  // ==========================================
   const removeImage = (indexToRemove) => {
     setImages((prevImages) =>
       prevImages.filter((_, index) => index !== indexToRemove),
@@ -77,7 +67,6 @@ const AddAccountPage = () => {
       );
     }
 
-    // HTML required attribute hata diya tha, isliye yahan check lagana zaroori hai
     if (images.length === 0) {
       return Swal.fire("Error", "Please upload at least 1 image.", "warning");
     }
@@ -125,6 +114,14 @@ const AddAccountPage = () => {
         features: featuresArray,
         images: uploadedImageUrls,
       };
+
+      // 🟡 JADOO: Agar creation date khali hai, toh API mein na bhejo taake backend auto Date laga le
+      if (
+        !finalAccountData.creationDate ||
+        finalAccountData.creationDate === ""
+      ) {
+        finalAccountData.creationDate = null;
+      }
 
       await axios.post(`${API_URL}/api/accounts`, finalAccountData, {
         headers: { Authorization: `Bearer ${token}` },
@@ -276,7 +273,24 @@ const AddAccountPage = () => {
               </select>
             </div>
 
-            <div className="md:col-span-2">
+            {/* 🟡 NAYA JADOO: Account Creation Date */}
+            <div>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
+                Account Creation Date
+              </label>
+              <input
+                type="date"
+                name="creationDate"
+                value={formData.creationDate}
+                onChange={handleChange}
+                className="w-full px-4 py-2.5 rounded-lg bg-gray-50 dark:bg-snap-dark border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-snap-yellow outline-none transition"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Leave empty to use today's date.
+              </p>
+            </div>
+
+            <div className="md:col-span-1">
               <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
                 Key Features (Comma Separated)
               </label>
@@ -285,14 +299,12 @@ const AddAccountPage = () => {
                 name="features"
                 value={formData.features}
                 onChange={handleChange}
-                placeholder="e.g. Real Followers, Active Streaks, OG Email"
+                placeholder="e.g. Real Followers, Active Streaks"
                 className="w-full px-4 py-2.5 rounded-lg bg-gray-50 dark:bg-snap-dark border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-snap-yellow outline-none transition"
               />
             </div>
 
-            {/* ==========================================
-                VIP IMAGE PREVIEW & UPLOAD SECTION
-                ========================================== */}
+            {/* VIP IMAGE PREVIEW & UPLOAD SECTION */}
             <div className="md:col-span-2 border border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-6 bg-gray-50 dark:bg-gray-800/50">
               <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-4">
                 Upload Images (Max 5) *
@@ -303,11 +315,9 @@ const AddAccountPage = () => {
                 multiple
                 accept="image/*"
                 onChange={handleImageChange}
-                // 'required' hata diya hai kyunke ab hum state se check kar rahe hain, warna error dega
-                className="w-full mb-4 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-snap-yellow file:text-black hover:file:bg-yellow-400 cursor-pointer text-gray-600 dark:text-gray-400"
+                className="w-full mb-4 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-yellow-500 dark:file:bg-snap-yellow file:text-black hover:file:bg-yellow-600 cursor-pointer text-gray-600 dark:text-gray-400"
               />
 
-              {/* JADOO: Image Preview Grid */}
               {images.length > 0 && (
                 <div className="flex flex-wrap gap-4 mt-4 p-4 bg-white dark:bg-snap-dark rounded-xl border border-gray-200 dark:border-gray-700 shadow-inner">
                   {images.map((file, index) => (
@@ -315,13 +325,11 @@ const AddAccountPage = () => {
                       key={index}
                       className="relative w-24 h-24 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 shadow-sm group"
                     >
-                      {/* URL.createObjectURL se kacha preview dikhaya */}
                       <img
                         src={URL.createObjectURL(file)}
                         alt={`Preview ${index}`}
                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                       />
-                      {/* Cross Button */}
                       <button
                         type="button"
                         onClick={() => removeImage(index)}
@@ -397,12 +405,11 @@ const AddAccountPage = () => {
           </div>
         </div>
 
-        {/* Submit Button */}
         <div className="pt-4">
           <button
             type="submit"
             disabled={loading}
-            className={`w-full md:w-auto px-8 py-3 font-bold rounded-lg shadow-lg transition-all duration-300 ${loading ? "bg-gray-400 text-gray-700 cursor-not-allowed" : "bg-snap-yellow text-black hover:shadow-yellow-500/30 hover:-translate-y-1"}`}
+            className={`w-full md:w-auto px-8 py-3 font-bold rounded-lg shadow-lg transition-all duration-300 ${loading ? "bg-gray-400 text-gray-700 cursor-not-allowed" : "bg-yellow-500 dark:bg-snap-yellow text-black hover:shadow-yellow-500/30 hover:-translate-y-1"}`}
           >
             {loading ? "Uploading & Saving..." : "Publish Account 🚀"}
           </button>

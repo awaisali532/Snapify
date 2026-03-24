@@ -13,7 +13,7 @@ const accountSchema = new mongoose.Schema(
     gender: { type: String, enum: ["Male", "Female", "Any"], required: true },
     images: [{ type: String }],
     features: [{ type: String }],
-    creationDate: { type: Date, default: Date.now },
+    creationDate: { type: Date, default: null },
 
     // ==========================================
     // 🔴 SECRET DATA

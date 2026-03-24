@@ -6,7 +6,7 @@ import {
   FaImage,
   FaQuoteLeft,
   FaCommentDots,
-} from "react-icons/fa"; // NAYA JADOO: Icon add kiya
+} from "react-icons/fa";
 import Swal from "sweetalert2";
 
 const ReviewsPage = () => {
@@ -45,7 +45,7 @@ const ReviewsPage = () => {
       imageUrl: url,
       imageWidth: "100%",
       imageAlt: "Review Screenshot",
-      confirmButtonColor: "#facc15",
+      confirmButtonColor: "#eab308", // yellow-500
       confirmButtonText: "Close",
       background: "#1f2937",
       color: "#fff",
@@ -55,13 +55,14 @@ const ReviewsPage = () => {
   if (loading) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center bg-gray-50 dark:bg-snap-dark">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-snap-dark dark:border-snap-yellow"></div>
+        {/* 🟡 LOADER COLOR FIXED HERE */}
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500 dark:border-snap-yellow"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-snap-dark py-16 px-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-snap-dark py-16 px-4 transition-colors duration-300">
       <div className="max-w-7xl mx-auto">
         {/* HERO SECTION */}
         <div className="text-center mb-16 max-w-3xl mx-auto">
@@ -183,13 +184,13 @@ const ReviewsPage = () => {
                     </p>
                   </div>
 
-                  {/* NAYA JADOO: Contact Buyer Button */}
+                  {/* 🟡 BUTTON HOVER COLORS FIXED FOR LIGHT & DARK MODE */}
                   {review.socialLink && (
                     <a
                       href={review.socialLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs font-bold bg-gray-100 dark:bg-gray-800 hover:bg-yellow-500 dark:hover:bg-snap-yellow text-gray-700 dark:text-white hover:text-black py-2 px-4 rounded-full transition-colors flex items-center gap-1.5 shadow-sm"
+                      className="text-xs font-bold bg-gray-100 dark:bg-gray-800 hover:bg-yellow-500 dark:hover:bg-snap-yellow text-gray-700 dark:text-gray-200 hover:text-black dark:hover:text-black py-2 px-4 rounded-full transition-colors flex items-center gap-1.5 shadow-sm"
                       title="Contact this buyer to verify"
                     >
                       <FaCommentDots className="text-sm" /> Ask Me

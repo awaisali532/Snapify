@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import ScorePackageCard from "../../components/Public/Boosting/ScorePackageCard";
 import OfferPackageCard from "../../components/Public/Boosting/OfferPackageCard";
+// NAYA JADOO: Popular Component Import kiya
+import PopularPackageCard from "../../components/Public/Boosting/PopularPackageCard";
 
 const ScoreBoostingPage = () => {
   const [packages, setPackages] = useState([]);
@@ -11,7 +13,6 @@ const ScoreBoostingPage = () => {
     const fetchPackages = async () => {
       try {
         const API_URL = import.meta.env.VITE_API_URL;
-        // Public API jahan se sirf active packages aayenge
         const response = await axios.get(`${API_URL}/api/score-packages`);
         if (response.data.success) {
           setPackages(response.data.data);
@@ -41,7 +42,6 @@ const ScoreBoostingPage = () => {
         <div className="text-center mb-16 max-w-2xl mx-auto">
           <h1 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-6">
             Boost Your{" "}
-            {/* NAYA JADOO: Color fix kar diya light/dark mode ke liye */}
             <span className="text-yellow-500 dark:text-snap-yellow">
               Snap Score
             </span>{" "}
@@ -67,9 +67,11 @@ const ScoreBoostingPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-center mt-12">
             {packages.map((pkg) => (
               <div key={pkg._id}>
-                {/* Condition lagayi ke offer hai toh VIP card dikhao, warna Normal card */}
+                {/* 🟡 NAYA JADOO: 3 Conditions lagayin hain */}
                 {pkg.isOffer ? (
                   <OfferPackageCard pkg={pkg} />
+                ) : pkg.isPopular ? (
+                  <PopularPackageCard pkg={pkg} />
                 ) : (
                   <ScorePackageCard pkg={pkg} />
                 )}
