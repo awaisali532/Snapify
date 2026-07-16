@@ -146,6 +146,8 @@ const EditAccountPage = () => {
       if (newImages.length > 0) {
         const imageFormData = new FormData();
         newImages.forEach((image) => {
+          console.log(image.name, image.size / 1024 / 1024, "MB");
+
           imageFormData.append("images", image);
         });
 

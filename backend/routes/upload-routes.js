@@ -33,6 +33,8 @@ router.post("/", upload.single("image"), (req, res) => {
 // FIX 2: Limit ko 2 se barha kar 5 kar diya taake Add Account theek chale
 router.post("/multiple", upload.array("images", 5), (req, res) => {
   try {
+    console.log("Route reached");
+    console.log(req.files?.length);
     // upload.array() ke liye req.files (plural) use hota hai
     if (!req.files || req.files.length === 0) {
       return res
